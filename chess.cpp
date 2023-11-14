@@ -9,8 +9,22 @@ using namespace std;
 
 int main()
 {
-	// local variables
+	// local variables and funcitons
 	Color backgroundColor(25, 51, 45);
+
+	// start position of all pieces (0 = empty, 1 = pawn, 2 = rook, 3 = knight, 4 = bishop, 5 = queen, 6 = king, for white += 6)
+	int pieces[8][8] = {
+		{8, 9, 10, 11, 12, 10, 9, 8},
+		{7, 7, 7, 7, 7, 7, 7, 7},
+		{0, 0, 0, 0, 0, 0, 0, 0},
+		{0, 0, 0, 0, 0, 0, 0, 0},
+		{0, 0, 0, 0, 0, 0, 0, 0},
+		{0, 0, 0, 0, 0, 0, 0, 0},
+		{1, 1, 1, 1, 1, 1, 1, 1},
+		{2, 3, 4, 5, 6, 4, 3, 2}
+	};
+
+	void drawPieces(RenderWindow& window, int pieces[8][8], Sprite pieceSprites[12]);
 
 	// textures and sprites
 	Texture boardTexture;
@@ -71,11 +85,54 @@ int main()
 		window.draw(boardShadowSprite, BlendMultiply);
 		window.draw(boardSprite);
 
+		drawPieces(window, pieces, pieceSprites);
+
 		// display everything you have drawn at once
 		window.display();
 	}
 
 	return 0;
+}
+
+void drawPieces(RenderWindow& window, int pieces[8][8], Sprite pieceSprites[12])
+{
+	// go trough every piece
+	for (int y = 0; y < 8; y++)
+	{
+		for (int x = 0; x < 8; x++)
+		{
+			// skip empty fields
+			if (pieces[y][x] == 0)
+			{
+				continue;
+			}
+
+			// set position for current piece
+			pieceSprites[pieces[y][x] - 1].setPosition(100 + x * 16 * 5, 80 + y * 16 * 5);
+
+			// adjust position for certain pieces, so that all line up
+			if (pieces[y][x] == 2 || pieces[y][x] == 8)
+			{
+				Vector2 position = pieceSprites[pieces[y][x] - 1].getPosition();
+				position.y -= 5;
+				pieceSprites[pieces[y][x] - 1].setPosition(position);
+			}
+			else if (pieces[y][x] == 3 || pieces[y][x] == 9)
+			{
+				Vector2 position = pieceSprites[pieces[y][x] - 1].getPosition();
+				position.y -= 10;
+				pieceSprites[pieces[y][x] - 1].setPosition(position);
+			}
+			else if (pieces[y][x] != 1 && pieces[y][x] != 7)
+			{
+				Vector2 position = pieceSprites[pieces[y][x] - 1].getPosition();
+				position.y -= 15;
+				pieceSprites[pieces[y][x] - 1].setPosition(position);
+			}
+
+			window.draw(pieceSprites[pieces[y][x] - 1]);
+		}
+	}
 }
 
 int loadPieceTextures(Texture textures[12], Sprite sprites[12], string names[6])
