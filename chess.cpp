@@ -24,7 +24,8 @@ int main()
 		{2, 3, 4, 5, 6, 4, 3, 2}
 	};
 
-	void drawPieces(RenderWindow& window, int pieces[8][8], Sprite pieceSprites[12], Vector2i mousePos);
+	void drawPieces(RenderWindow& window, int pieces[8][8], Sprite pieceSprites[12], Vector2i mousePos, Vector2i pickedUpPiece, 
+	bool piecePickedUp);
 
 	// textures and sprites
 	Texture boardTexture;
@@ -35,7 +36,7 @@ int main()
 
 	Texture pieceTextures[12];
 	Sprite pieceSprites[12];
-	string pieceNames[6] = {"pawn", "rook", "knight", "bishop", "queen", "king"};
+	string pieceNames[6] = {"pawn", "rook", "knight", "bishop", "queen", "king"}; // required to load in the textures automatically
 
 	int loadPieceTextures(Texture textures[12], Sprite sprites[12], string names[6]);
 
@@ -62,6 +63,8 @@ int main()
 	loadPieceTextures(pieceTextures, pieceSprites, pieceNames);
 
 	Vector2i mousePos = {-1, -1};
+	Vector2i pickedUpPiece = {-1, -1}; // which piece is picked up (no piece = {-1, -1})
+	bool piecePickedUp = false; // is a piece picked up
 
     // create and open a new graphics window of size 800x800 Pixel and a title
 	RenderWindow window(VideoMode(800, 800), "Chess");
@@ -91,13 +94,43 @@ int main()
 						Mouse::getPosition(window).x - 80 > 16 * 8 * 5 || Mouse::getPosition(window).y - 80 > 16 * 8 * 5)
 						{
 							mousePos = {-1, -1};
-						}
-						else 
-						{
-							mousePos = {(Mouse::getPosition(window).x - 80) / 80, (Mouse::getPosition(window).y - 80) / 80};
-						}
 
-						cout << mousePos.x << "|" << mousePos.x << endl;
+							// put piece back, when one is picked up
+							if (piecePickedUp)
+							{
+								pickedUpPiece = {-1, -1};
+								piecePickedUp =  false;
+							}
+						}
+						// when mouse is on the board
+						else
+						{
+							// calculate mouse position on the board
+							mousePos = {(Mouse::getPosition(window).x - 80) / 80, (Mouse::getPosition(window).y - 80) / 80};
+
+							// if no piece is picked up and at the mouse position is a piece, pick it up
+							if (!piecePickedUp && pieces[mousePos.y][mousePos.x] != 0)
+							{
+								pickedUpPiece = mousePos;
+								piecePickedUp = true;
+							}
+							// if you place a picked up piece back at the same spot
+							else if (piecePickedUp && pickedUpPiece == mousePos)
+							{
+								pickedUpPiece = {-1, -1};
+								piecePickedUp = false;
+							}
+							// if you place the picked up piece somewhere else
+							else if (piecePickedUp && pieces[mousePos.y][mousePos.x] == 0)
+							{
+								// switch the pieces (empty <-> pickedUpPiece)
+								pieces[mousePos.y][mousePos.x] = pieces[pickedUpPiece.y][pickedUpPiece.x];
+								pieces[pickedUpPiece.y][pickedUpPiece.x] = 0;
+
+								pickedUpPiece = {-1, -1};
+								piecePickedUp = false;
+							}
+						}
 					}
 					break;
 					
@@ -114,7 +147,8 @@ int main()
 		window.draw(boardShadowSprite, BlendMultiply);
 		window.draw(boardSprite);
 
-		drawPieces(window, pieces, pieceSprites, mousePos);
+		// draw pieces
+		drawPieces(window, pieces, pieceSprites, mousePos, pickedUpPiece, piecePickedUp);
 
 		// display everything you have drawn at once
 		window.display();
@@ -123,7 +157,9 @@ int main()
 	return 0;
 }
 
-void drawPieces(RenderWindow& window, int pieces[8][8], Sprite pieceSprites[12], Vector2i mousePos)
+// function to draw all pieces
+void drawPieces(RenderWindow& window, int pieces[8][8], Sprite pieceSprites[12], Vector2i mousePos, Vector2i pickedUpPiece, 
+bool piecePickedUp)
 {
 	// go trough every piece
 	for (int y = 0; y < 8; y++)
@@ -136,17 +172,18 @@ void drawPieces(RenderWindow& window, int pieces[8][8], Sprite pieceSprites[12],
 				continue;
 			}
 			
-			if (mousePos.x == x && mousePos.y == y)
+			// position picked up pieces at the mouse postion
+			if (piecePickedUp && pickedUpPiece.x == x && pickedUpPiece.y == y)
 			{
-				pieceSprites[pieces[y][x] - 1].setPosition(Mouse::getPosition(window).x, Mouse::getPosition(window).y);
+				pieceSprites[pieces[y][x] - 1].setPosition(Mouse::getPosition(window).x - 20, Mouse::getPosition(window).y - 6 * 5);
 			}
+			// position other pieces on the board
 			else
 			{
-				// set position for current piece
 				pieceSprites[pieces[y][x] - 1].setPosition(100 + x * 16 * 5, 80 + y * 16 * 5);
 			}
 
-			// adjust position for certain pieces, so that all line up
+			// adjust position for certain pieces, so that all line up (because some pieces have different heights)
 			if (pieces[y][x] == 2 || pieces[y][x] == 8)
 			{
 				Vector2 position = pieceSprites[pieces[y][x] - 1].getPosition();
@@ -166,11 +203,13 @@ void drawPieces(RenderWindow& window, int pieces[8][8], Sprite pieceSprites[12],
 				pieceSprites[pieces[y][x] - 1].setPosition(position);
 			}
 
+			// draw the piece
 			window.draw(pieceSprites[pieces[y][x] - 1]);
 		}
 	}
 }
 
+// function to load all textures for the pieces
 int loadPieceTextures(Texture textures[12], Sprite sprites[12], string names[6])
 {
 	for (int i = 0; i < 6; i++)
