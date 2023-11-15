@@ -9,10 +9,10 @@ using namespace std;
 
 int main()
 {
-	// local variables and funcitons
+	// local variables and functions
 	Color backgroundColor(25, 51, 45);
 
-	// start position of all pieces (0 = empty, 1 = pawn, 2 = rook, 3 = knight, 4 = bishop, 5 = queen, 6 = king, for white += 6)
+	// start position of all pieces (0 = empty, 1 = pawn, 2 = rook, 3 = knight, 4 = bishop, 5 = queen, 6 = king, for black += 6)
 	int pieces[8][8] = {
 		{8, 9, 10, 11, 12, 10, 9, 8},
 		{7, 7, 7, 7, 7, 7, 7, 7},
@@ -24,7 +24,7 @@ int main()
 		{2, 3, 4, 5, 6, 4, 3, 2}
 	};
 
-	void drawPieces(RenderWindow& window, int pieces[8][8], Sprite pieceSprites[12]);
+	void drawPieces(RenderWindow& window, int pieces[8][8], Sprite pieceSprites[12], Vector2i mousePos);
 
 	// textures and sprites
 	Texture boardTexture;
@@ -47,7 +47,7 @@ int main()
 
 	boardSprite.setTexture(boardTexture);
 	boardSprite.setScale(5, 5); // one pixel on the images is equal to five pixel on the window
-	boardSprite.setPosition(80, 80);
+	boardSprite.setPosition(65, 65);
 
 	if (!boardShadowTexture.loadFromFile("textures\\board_shadow.png"))
 	{
@@ -57,9 +57,11 @@ int main()
 
 	boardShadowSprite.setTexture(boardShadowTexture);
 	boardShadowSprite.setScale(5, 5);
-	boardShadowSprite.setPosition(95, 95); // shift 3 pixels on the image scale further
+	boardShadowSprite.setPosition(80, 80); // shift 3 pixels on the image scale further
 
 	loadPieceTextures(pieceTextures, pieceSprites, pieceNames);
+
+	Vector2i mousePos = {-1, -1};
 
     // create and open a new graphics window of size 800x800 Pixel and a title
 	RenderWindow window(VideoMode(800, 800), "Chess");
@@ -73,9 +75,36 @@ int main()
 		// check if there actually was some user interaction
 		while (window.pollEvent(event))
 		{
-			// react on the request to close the graphics window
-			if (event.type == Event::Closed)
-				window.close();
+			switch (event.type)
+			{
+				// window closed
+				case Event::Closed:
+					window.close();
+					break;
+
+				// mousebutton pressed
+				case Event::MouseButtonPressed:
+					if (event.mouseButton.button == Mouse::Left) // specifies left mousebutton
+					{
+						// if mouse isn't on the board
+						if (Mouse::getPosition(window).x - 80 < 0 || Mouse::getPosition(window).y - 80 < 0 || 
+						Mouse::getPosition(window).x - 80 > 16 * 8 * 5 || Mouse::getPosition(window).y - 80 > 16 * 8 * 5)
+						{
+							mousePos = {-1, -1};
+						}
+						else 
+						{
+							mousePos = {(Mouse::getPosition(window).x - 80) / 80, (Mouse::getPosition(window).y - 80) / 80};
+						}
+
+						cout << mousePos.x << "|" << mousePos.x << endl;
+					}
+					break;
+					
+				// we don't process other types of events
+				default:
+					break;
+			}
 		}
 
 		// clear the screen of the graphics window
@@ -85,7 +114,7 @@ int main()
 		window.draw(boardShadowSprite, BlendMultiply);
 		window.draw(boardSprite);
 
-		drawPieces(window, pieces, pieceSprites);
+		drawPieces(window, pieces, pieceSprites, mousePos);
 
 		// display everything you have drawn at once
 		window.display();
@@ -94,7 +123,7 @@ int main()
 	return 0;
 }
 
-void drawPieces(RenderWindow& window, int pieces[8][8], Sprite pieceSprites[12])
+void drawPieces(RenderWindow& window, int pieces[8][8], Sprite pieceSprites[12], Vector2i mousePos)
 {
 	// go trough every piece
 	for (int y = 0; y < 8; y++)
@@ -106,9 +135,16 @@ void drawPieces(RenderWindow& window, int pieces[8][8], Sprite pieceSprites[12])
 			{
 				continue;
 			}
-
-			// set position for current piece
-			pieceSprites[pieces[y][x] - 1].setPosition(100 + x * 16 * 5, 80 + y * 16 * 5);
+			
+			if (mousePos.x == x && mousePos.y == y)
+			{
+				pieceSprites[pieces[y][x] - 1].setPosition(Mouse::getPosition(window).x, Mouse::getPosition(window).y);
+			}
+			else
+			{
+				// set position for current piece
+				pieceSprites[pieces[y][x] - 1].setPosition(100 + x * 16 * 5, 80 + y * 16 * 5);
+			}
 
 			// adjust position for certain pieces, so that all line up
 			if (pieces[y][x] == 2 || pieces[y][x] == 8)
