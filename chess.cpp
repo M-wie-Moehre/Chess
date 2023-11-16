@@ -11,6 +11,9 @@ int main()
 {
 	// local variables and functions
 	Color backgroundColor(25, 51, 45);
+	int pixelScale = 4; // the factor, on how much the textures get scaled up
+	int windowSizeX = 800;
+	int windowSizeY = 800;
 
 	// start position of all pieces (0 = empty, 1 = pawn, 2 = rook, 3 = knight, 4 = bishop, 5 = queen, 6 = king, for black += 6)
 	int pieces[8][8] = {
@@ -23,28 +26,26 @@ int main()
 		{1, 1, 1, 1, 1, 1, 1, 1},
 		{2, 3, 4, 5, 6, 4, 3, 2}
 	};
-	int pieceCounts[12] = {8, 2, 2, 2, 1, 1, 8, 2, 2, 2, 1, 1};
+	int beatenPieces[12] = {0};
 
-	void updatePieceCounts(int pieces[8][8], int (&pieceCounts)[12]);
+	void updateBeatenPieces(int pieces[8][8], int (&beatenPieces)[12]);
 
-	void drawPieces(RenderWindow &window, int pieces[8][8], Sprite pieceSprites[12], Sprite pieceShadowSprites[4], 
-	Vector2i mousePos, Vector2i pickedUpPiece, bool piecePickedUp);
-	void drawBeatenPieces(RenderWindow &window, int pieceCounts[12], Sprite pieceSprites[12], Sprite pieceShadow[4]);
+	void drawPieces(RenderWindow &window, int pixelScale, Vector2i boardPosition, int pieces[8][8], int beatenPieces[12], Sprite (&pieceSprites)[12], 
+	Sprite pieceShadowSprites[4], Vector2i mousePos, Vector2i pickedUpPiece, bool piecePickedUp);
+	void drawBeatenPieces(RenderWindow &window, Vector2i boardPosition, int beatenPieces[12], Sprite pieceSprites[12], Sprite pieceShadow[4]);
 
 	// textures and sprites
-	Texture boardTexture;
-	Sprite boardSprite;
-
-	Texture boardShadowTexture;
-	Sprite boardShadowSprite;
-
 	Texture pieceTextures[12];
 	Sprite pieceSprites[12];
 	Texture pieceShadowsTextures[4];
 	Sprite pieceShadowsSprites[4];
 	string pieceNames[6] = {"pawn", "rook", "knight", "bishop", "queen", "king"}; // required to load in the textures automatically
 
-	int loadPieceTextures(Texture textures[12], Sprite sprites[12], Texture pieceShadowsTextures[4], Sprite pieceShadowsSprites[4], string names[6]);
+	int loadPieceTextures(int pixelScale, Texture textures[12], Sprite sprites[12], Texture pieceShadowsTextures[4], Sprite pieceShadowsSprites[4], string names[6]);
+
+	Texture boardTexture;
+	Sprite boardSprite;
+	Vector2i boardPosition = {(windowSizeX - 134 * pixelScale) / 2, (windowSizeY - 134 * pixelScale) / 2};
 
 	if (!boardTexture.loadFromFile("textures\\board.png"))
 	{
@@ -53,8 +54,11 @@ int main()
 	}
 
 	boardSprite.setTexture(boardTexture);
-	boardSprite.setScale(5, 5); // one pixel on the images is equal to five pixel on the window
-	boardSprite.setPosition(65, 65);
+	boardSprite.setScale(pixelScale, pixelScale); // one pixel on the images is equal to five pixel on the window
+	boardSprite.setPosition(boardPosition.x, boardPosition.y);
+
+	Texture boardShadowTexture;
+	Sprite boardShadowSprite;
 
 	if (!boardShadowTexture.loadFromFile("textures\\board_shadow.png"))
 	{
@@ -63,17 +67,17 @@ int main()
 	}
 
 	boardShadowSprite.setTexture(boardShadowTexture);
-	boardShadowSprite.setScale(5, 5);
-	boardShadowSprite.setPosition(80, 80); // shift 3 pixels on the image scale further
+	boardShadowSprite.setScale(pixelScale, pixelScale);
+	boardShadowSprite.setPosition(boardPosition.x + 3 * pixelScale, boardPosition.y + 3 * pixelScale); // shift 3 pixels on the image scale further
 
-	loadPieceTextures(pieceTextures, pieceSprites, pieceShadowsTextures, pieceShadowsSprites, pieceNames);
+	loadPieceTextures(pixelScale, pieceTextures, pieceSprites, pieceShadowsTextures, pieceShadowsSprites, pieceNames);
 
 	Vector2i mousePos = {-1, -1};
 	Vector2i pickedUpPiece = {-1, -1}; // which piece is picked up (no piece = {-1, -1})
 	bool piecePickedUp = false; // is a piece picked up
 
     // create and open a new graphics window of size 800x800 Pixel and a title
-	RenderWindow window(VideoMode(800, 800), "Chess");
+	RenderWindow window(VideoMode(windowSizeX, windowSizeY), "Chess");
 
 	// main loop that is active until the graphics window is closed
 	while (window.isOpen())
@@ -96,9 +100,10 @@ int main()
 					if (event.mouseButton.button == Mouse::Left) // specifies left mousebutton
 					{
 						// if mouse isn't on the board
-						if (Mouse::getPosition(window).x - 80 < 0 || Mouse::getPosition(window).y - 80 < 0 || 
-						Mouse::getPosition(window).x - 80 > 16 * 8 * 5 || Mouse::getPosition(window).y - 80 > 16 * 8 * 5)
+						if (Mouse::getPosition(window).x - boardPosition.x - 3 * pixelScale < 0 || Mouse::getPosition(window).y - boardPosition.y - 3 * pixelScale < 0 || 
+						Mouse::getPosition(window).x - boardPosition.x - 3 * pixelScale > 16 * 8 * pixelScale || Mouse::getPosition(window).y - boardPosition.y - 3 * pixelScale > 16 * 8 * pixelScale)
 						{
+							cout << beatenPieces[11] << endl;
 							mousePos = {-1, -1};
 
 							// put piece back, when one is picked up
@@ -112,7 +117,8 @@ int main()
 						else
 						{
 							// calculate mouse position on the board
-							mousePos = {(Mouse::getPosition(window).x - 80) / 80, (Mouse::getPosition(window).y - 80) / 80};
+							mousePos = {(Mouse::getPosition(window).x - boardPosition.x - 3 * pixelScale) / (16 * pixelScale), 
+							(Mouse::getPosition(window).y - boardPosition.y - 3 * pixelScale) / (16 * pixelScale)};
 
 							// if no piece is picked up and at the mouse position is a piece, pick it up
 							if (!piecePickedUp && pieces[mousePos.y][mousePos.x] != 0)
@@ -148,7 +154,7 @@ int main()
 								pickedUpPiece = {-1, -1};
 								piecePickedUp = false;
 
-								updatePieceCounts(pieces, pieceCounts);
+								updateBeatenPieces(pieces, beatenPieces);
 							}
 						}
 					}
@@ -168,10 +174,7 @@ int main()
 		window.draw(boardSprite);
 
 		// draw pieces
-		drawPieces(window, pieces, pieceSprites, pieceShadowsSprites, mousePos, pickedUpPiece, piecePickedUp);
-
-		// draw beaten pieces
-		drawBeatenPieces(window, pieceCounts, pieceSprites, pieceShadowsSprites);
+		drawPieces(window, pixelScale, boardPosition, pieces, beatenPieces, pieceSprites, pieceShadowsSprites, mousePos, pickedUpPiece, piecePickedUp);
 
 		// display everything you have drawn at once
 		window.display();
@@ -180,10 +183,51 @@ int main()
 	return 0;
 }
 
-// function to draw all pieces
-void drawPieces(RenderWindow &window, int pieces[8][8], Sprite pieceSprites[12], Sprite pieceShadowSprites[4], Vector2i mousePos, 
-Vector2i pickedUpPiece, bool piecePickedUp)
+void drawPiece(RenderWindow &window, int piece, Vector2i position, Sprite pieceSprites[12], Sprite pieceShadowSprites[4], int pixelScale)
 {
+	pieceSprites[piece].setPosition(position.x, position.y);
+
+	if (piece == 1 || piece == 7)
+	{
+		Vector2 position = pieceSprites[piece].getPosition();
+		position.y -= 1 * pixelScale;
+		pieceSprites[piece].setPosition(position);
+	}
+	else if (piece == 2 || piece == 8)
+	{
+		Vector2 position = pieceSprites[piece].getPosition();
+		position.y -= 2 * pixelScale;
+		pieceSprites[piece].setPosition(position);
+	}
+	else if (piece != 0 && piece != 6)
+	{
+		Vector2 position = pieceSprites[piece].getPosition();
+		position.y -= 3 * pixelScale;
+		pieceSprites[piece].setPosition(position);
+	}
+
+	int currentShadowIndex = 3;
+	for (int i = 0; i < 3; i++)
+	{
+		if (piece == i || piece == i + 6)
+		{
+			currentShadowIndex = i;
+		}
+	}
+
+	pieceShadowSprites[currentShadowIndex].setPosition(position.x + 2 * pixelScale, position.y + 8 * pixelScale);
+
+	window.draw(pieceSprites[piece]);
+	window.draw(pieceShadowSprites[currentShadowIndex], BlendMultiply);
+}
+
+// function to draw all pieces
+void drawPieces(RenderWindow &window, int pixelScale, Vector2i boardPosition, int pieces[8][8], int beatenPieces[12], Sprite (&pieceSprites)[12], 
+Sprite pieceShadowSprites[4], Vector2i mousePos, Vector2i pickedUpPiece, bool piecePickedUp)
+{
+	/*
+		draw pieces still on board
+	*/
 	// go trough every piece
 	for (int y = 0; y < 8; y++)
 	{
@@ -194,90 +238,69 @@ Vector2i pickedUpPiece, bool piecePickedUp)
 			{
 				continue;
 			}
-
-			// determin which shadow is used for the current piece
-			int currentShadowIndex = 3;
-			for (int i = 0; i < 3; i++)
-			{
-				if (pieces[y][x] - 1 == i || pieces[y][x] - 1 == i + 6)
-				{
-					currentShadowIndex = i;
-				}
-			}
-			
 			
 			// position picked up pieces at the mouse postion
 			if (piecePickedUp && pickedUpPiece.x == x && pickedUpPiece.y == y)
 			{
-				pieceSprites[pieces[y][x] - 1].setPosition(Mouse::getPosition(window).x - 20, Mouse::getPosition(window).y - 30);
-
-				pieceShadowSprites[currentShadowIndex].setPosition(Mouse::getPosition(window).x - 10, Mouse::getPosition(window).y + 10);
+				Vector2i position = {Mouse::getPosition(window).x - 4 * pixelScale, Mouse::getPosition(window).y - 6 * pixelScale};
+				drawPiece(window, pieces[y][x] - 1, position, pieceSprites, pieceShadowSprites, pixelScale);
 			}
 			// position other pieces on the board
 			else
 			{
-				pieceSprites[pieces[y][x] - 1].setPosition(100 + x * 16 * 5, 80 + y * 16 * 5);
+				Vector2i position = {boardPosition.x + 7 * pixelScale + x * 16 * 4, boardPosition.x + 3 * pixelScale + y * 16 * 4};
+				drawPiece(window, pieces[y][x] - 1, position, pieceSprites, pieceShadowSprites, pixelScale);
+			}
+		}
+	}
 
-				pieceShadowSprites[currentShadowIndex].setPosition(100 + x * 16 * 5 + 10, 80 + y * 16 * 5 + 40);
-			}
-
-			// adjust position for certain pieces, so that all line up (because some pieces have different heights)
-			if (pieces[y][x] == 2 || pieces[y][x] == 8)
-			{
-				Vector2 position = pieceSprites[pieces[y][x] - 1].getPosition();
-				position.y -= 5;
-				pieceSprites[pieces[y][x] - 1].setPosition(position);
-			}
-			else if (pieces[y][x] == 3 || pieces[y][x] == 9)
-			{
-				Vector2 position = pieceSprites[pieces[y][x] - 1].getPosition();
-				position.y -= 10;
-				pieceSprites[pieces[y][x] - 1].setPosition(position);
-			}
-			else if (pieces[y][x] != 1 && pieces[y][x] != 7)
-			{
-				Vector2 position = pieceSprites[pieces[y][x] - 1].getPosition();
-				position.y -= 15;
-				pieceSprites[pieces[y][x] - 1].setPosition(position);
-			}
-
-			// draw the piece
-			window.draw(pieceSprites[pieces[y][x] - 1]);
-			window.draw(pieceShadowSprites[currentShadowIndex], BlendMultiply);
+	/*
+		draw beaten pieces
+	*/
+	// go trough the list of beaten pieces
+	for (int i = 0; i < 12; i++)
+	{
+		for (int j = 0; j < beatenPieces[i]; j++)
+		{
+			Vector2i position = {boardPosition.x + i % 6 * 100 + j * 10, 40 + 676 * (int)(i / 6)};
+			drawPiece(window, i, position, pieceSprites, pieceShadowSprites, pixelScale);
 		}
 	}
 }
 
-void updatePieceCounts(int pieces[8][8], int (&pieceCounts)[12])
+// function to update the list of beaten pieces
+void updateBeatenPieces(int pieces[8][8], int (&beatenPieces)[12])
 {
 	for (int i = 0; i < 12; i++)
 	{
-		pieceCounts[i] = 0;
+		if (i == 0 || i == 6)
+		{
+			beatenPieces[i] = 8;
+		}
+		else if (i == 1 || i == 7 || i == 2 || i == 8 || i == 3 || i == 9)
+		{
+			beatenPieces[i] = 2;
+		}
+		else
+		{
+			beatenPieces[i] = 1;
+		}
+
 		for (int y = 0; y < 8; y++)
 		{
 			for (int x = 0; x < 8; x++)
 			{
 				if (pieces[y][x] == i + 1)
 				{
-					pieceCounts[i] += 1;
+					beatenPieces[i] -= 1;
 				}
 			}
 		}
 	}
 }
 
-// function to draw beaten pieces
-void drawBeatenPieces(RenderWindow &window, int pieceCounts[12], Sprite pieceSprites[12], Sprite pieceShadow[4])
-{
-	for (int i = 0; i < 12; i++)
-	{
-		
-	}
-	
-}
-
 // function to load all textures for the pieces
-int loadPieceTextures(Texture textures[12], Sprite sprites[12], Texture pieceShadowsTextures[4], Sprite pieceShadowsSprites[4], string names[6])
+int loadPieceTextures(int pixelScale, Texture textures[12], Sprite sprites[12], Texture pieceShadowsTextures[4], Sprite pieceShadowsSprites[4], string names[6])
 {
 	// load textures of white pieces
 	for (int i = 0; i < 6; i++)
@@ -289,7 +312,7 @@ int loadPieceTextures(Texture textures[12], Sprite sprites[12], Texture pieceSha
 		}
 
 		sprites[i].setTexture(textures[i]);
-		sprites[i].setScale(5, 5); // one pixel on the images is equal to five pixel on the window
+		sprites[i].setScale(pixelScale, pixelScale); // one pixel on the images is equal to five pixel on the window
 	}
 	
 	// load texture of black pieces
@@ -302,7 +325,7 @@ int loadPieceTextures(Texture textures[12], Sprite sprites[12], Texture pieceSha
 		}
 
 		sprites[i + 6].setTexture(textures[i + 6]);
-		sprites[i + 6].setScale(5, 5); // one pixel on the images is equal to five pixel on the window
+		sprites[i + 6].setScale(pixelScale, pixelScale); // one pixel on the images is equal to five pixel on the window
 	}
 
 	for (int i = 0; i < 4; i++)
@@ -314,7 +337,7 @@ int loadPieceTextures(Texture textures[12], Sprite sprites[12], Texture pieceSha
 		}
 
 		pieceShadowsSprites[i].setTexture(pieceShadowsTextures[i]);
-		pieceShadowsSprites[i].setScale(5, 5); // one pixel on the images is equal to five pixel on the window
+		pieceShadowsSprites[i].setScale(pixelScale, pixelScale); // one pixel on the images is equal to five pixel on the window
 	}
 	
 	
