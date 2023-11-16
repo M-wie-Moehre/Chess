@@ -26,13 +26,13 @@ int main()
 		{1, 1, 1, 1, 1, 1, 1, 1},
 		{2, 3, 4, 5, 6, 4, 3, 2}
 	};
-	int beatenPieces[12] = {0};
+	int beatenPieces[12] = {0}; // saves how many pieces of each type got beaten
 
-	void updateBeatenPieces(int pieces[8][8], int (&beatenPieces)[12]);
+	void updateBeatenPieces(int pieces[8][8], int (&beatenPieces)[12]); // function to update the list of beaten pieces
 
+	// function to draw all pieces
 	void drawPieces(RenderWindow &window, int pixelScale, Vector2i boardPosition, int pieces[8][8], int beatenPieces[12], Sprite (&pieceSprites)[12], 
 	Sprite pieceShadowSprites[4], Vector2i mousePos, Vector2i pickedUpPiece, bool piecePickedUp);
-	void drawBeatenPieces(RenderWindow &window, Vector2i boardPosition, int beatenPieces[12], Sprite pieceSprites[12], Sprite pieceShadow[4]);
 
 	// textures and sprites
 	Texture pieceTextures[12];
@@ -41,12 +41,15 @@ int main()
 	Sprite pieceShadowsSprites[4];
 	string pieceNames[6] = {"pawn", "rook", "knight", "bishop", "queen", "king"}; // required to load in the textures automatically
 
-	int loadPieceTextures(int pixelScale, Texture textures[12], Sprite sprites[12], Texture pieceShadowsTextures[4], Sprite pieceShadowsSprites[4], string names[6]);
+	// function to load all textures for the pieces
+	int loadPieceTextures(int pixelScale, Texture textures[12], Sprite sprites[12], Texture pieceShadowsTextures[4], Sprite pieceShadowsSprites[4], 
+	string names[6]);
 
 	Texture boardTexture;
 	Sprite boardSprite;
 	Vector2i boardPosition = {(windowSizeX - 134 * pixelScale) / 2, (windowSizeY - 134 * pixelScale) / 2};
 
+	// load the board texture
 	if (!boardTexture.loadFromFile("textures\\board.png"))
 	{
 		cout << "Couldn't load texture \"textures\\board.png\". Exiting.." << endl;
@@ -60,6 +63,7 @@ int main()
 	Texture boardShadowTexture;
 	Sprite boardShadowSprite;
 
+	// load the texture of the boards shadow
 	if (!boardShadowTexture.loadFromFile("textures\\board_shadow.png"))
 	{
 		cout << "Couldn't load texture \"textures\\board.png\". Exiting.." << endl;
@@ -72,7 +76,7 @@ int main()
 
 	loadPieceTextures(pixelScale, pieceTextures, pieceSprites, pieceShadowsTextures, pieceShadowsSprites, pieceNames);
 
-	Vector2i mousePos = {-1, -1};
+	Vector2i mousePos = {-1, -1}; // saves, which field the mouse clicked on
 	Vector2i pickedUpPiece = {-1, -1}; // which piece is picked up (no piece = {-1, -1})
 	bool piecePickedUp = false; // is a piece picked up
 
@@ -100,10 +104,10 @@ int main()
 					if (event.mouseButton.button == Mouse::Left) // specifies left mousebutton
 					{
 						// if mouse isn't on the board
-						if (Mouse::getPosition(window).x - boardPosition.x - 3 * pixelScale < 0 || Mouse::getPosition(window).y - boardPosition.y - 3 * pixelScale < 0 || 
-						Mouse::getPosition(window).x - boardPosition.x - 3 * pixelScale > 16 * 8 * pixelScale || Mouse::getPosition(window).y - boardPosition.y - 3 * pixelScale > 16 * 8 * pixelScale)
+						if (Mouse::getPosition(window).x - boardPosition.x - 3 * pixelScale < 0 || Mouse::getPosition(window).y - boardPosition.y - 3 * 
+						pixelScale < 0 || Mouse::getPosition(window).x - boardPosition.x - 3 * pixelScale > 16 * 8 * pixelScale || 
+						Mouse::getPosition(window).y - boardPosition.y - 3 * pixelScale > 16 * 8 * pixelScale)
 						{
-							cout << beatenPieces[11] << endl;
 							mousePos = {-1, -1};
 
 							// put piece back, when one is picked up
@@ -120,15 +124,17 @@ int main()
 							mousePos = {(Mouse::getPosition(window).x - boardPosition.x - 3 * pixelScale) / (16 * pixelScale), 
 							(Mouse::getPosition(window).y - boardPosition.y - 3 * pixelScale) / (16 * pixelScale)};
 
-							// if no piece is picked up and at the mouse position is a piece, pick it up
+							// if no piece is picked up and at the mouse position is a piece
 							if (!piecePickedUp && pieces[mousePos.y][mousePos.x] != 0)
 							{
+								// pick the piece up
 								pickedUpPiece = mousePos;
 								piecePickedUp = true;
 							}
 							// if you place a picked up piece back at the same spot
 							else if (piecePickedUp && pickedUpPiece == mousePos)
 							{
+								// put the piece down, without changing anything
 								pickedUpPiece = {-1, -1};
 								piecePickedUp = false;
 							}
@@ -173,7 +179,7 @@ int main()
 		window.draw(boardShadowSprite, BlendMultiply);
 		window.draw(boardSprite);
 
-		// draw pieces
+		// draw all pieces
 		drawPieces(window, pixelScale, boardPosition, pieces, beatenPieces, pieceSprites, pieceShadowsSprites, mousePos, pickedUpPiece, piecePickedUp);
 
 		// display everything you have drawn at once
@@ -183,10 +189,13 @@ int main()
 	return 0;
 }
 
+// function to draw one piece at a position
 void drawPiece(RenderWindow &window, int piece, Vector2i position, Sprite pieceSprites[12], Sprite pieceShadowSprites[4], int pixelScale)
 {
+	// set position for the piece
 	pieceSprites[piece].setPosition(position.x, position.y);
 
+	// adjust some piece positions, so that all line up (because some pieces are taller)
 	if (piece == 1 || piece == 7)
 	{
 		Vector2 position = pieceSprites[piece].getPosition();
@@ -206,6 +215,7 @@ void drawPiece(RenderWindow &window, int piece, Vector2i position, Sprite pieceS
 		pieceSprites[piece].setPosition(position);
 	}
 
+	// get the shadow for the current piece
 	int currentShadowIndex = 3;
 	for (int i = 0; i < 3; i++)
 	{
@@ -215,8 +225,10 @@ void drawPiece(RenderWindow &window, int piece, Vector2i position, Sprite pieceS
 		}
 	}
 
+	// set the shadows position
 	pieceShadowSprites[currentShadowIndex].setPosition(position.x + 2 * pixelScale, position.y + 8 * pixelScale);
 
+	// draw piece and shadow
 	window.draw(pieceSprites[piece]);
 	window.draw(pieceShadowSprites[currentShadowIndex], BlendMultiply);
 }
@@ -226,9 +238,9 @@ void drawPieces(RenderWindow &window, int pixelScale, Vector2i boardPosition, in
 Sprite pieceShadowSprites[4], Vector2i mousePos, Vector2i pickedUpPiece, bool piecePickedUp)
 {
 	/*
-		draw pieces still on board
+		draw pieces, that are still on the board
 	*/
-	// go trough every piece
+	// go trough every field
 	for (int y = 0; y < 8; y++)
 	{
 		for (int x = 0; x < 8; x++)
@@ -239,13 +251,13 @@ Sprite pieceShadowSprites[4], Vector2i mousePos, Vector2i pickedUpPiece, bool pi
 				continue;
 			}
 			
-			// position picked up pieces at the mouse postion
+			// draw picked up pieces at the mouse postion
 			if (piecePickedUp && pickedUpPiece.x == x && pickedUpPiece.y == y)
 			{
 				Vector2i position = {Mouse::getPosition(window).x - 4 * pixelScale, Mouse::getPosition(window).y - 6 * pixelScale};
 				drawPiece(window, pieces[y][x] - 1, position, pieceSprites, pieceShadowSprites, pixelScale);
 			}
-			// position other pieces on the board
+			// draw other pieces on the board
 			else
 			{
 				Vector2i position = {boardPosition.x + 7 * pixelScale + x * 16 * 4, boardPosition.x + 3 * pixelScale + y * 16 * 4};
@@ -257,13 +269,47 @@ Sprite pieceShadowSprites[4], Vector2i mousePos, Vector2i pickedUpPiece, bool pi
 	/*
 		draw beaten pieces
 	*/
+	int offset = 0; // saves how much the current piece needs to be shiftet on the x-axis
 	// go trough the list of beaten pieces
-	for (int i = 0; i < 12; i++)
+	// go trough white pieces first
+	for (int i = 0; i < 6; i++)
 	{
+		bool addOffset = false;
+
+		// go trough every piece of one type
 		for (int j = 0; j < beatenPieces[i]; j++)
 		{
-			Vector2i position = {boardPosition.x + i % 6 * 100 + j * 10, 40 + 676 * (int)(i / 6)};
+			Vector2i position = {boardPosition.x + offset, 40};
 			drawPiece(window, i, position, pieceSprites, pieceShadowSprites, pixelScale);
+			offset += 3 * pixelScale; // increase offset only slightly
+			addOffset = true;
+		}
+
+		// when a least one piece of the type got drawn, increase the offset for the next type
+		if(addOffset)
+		{
+			offset += 10 * pixelScale;
+		}
+	}
+
+	offset = 0; // restet offset for black pieces
+	// go trough black pieces
+	for (int i = 6; i < 12; i++)
+	{
+		bool addOffset = false;
+		// go trough every piece of one type
+		for (int j = 0; j < beatenPieces[i]; j++)
+		{
+			Vector2i position = {boardPosition.x + offset, 716};
+			drawPiece(window, i, position, pieceSprites, pieceShadowSprites, pixelScale);
+			offset += 3 * pixelScale; // increase offset only slightly
+			addOffset = true;
+		}
+
+		// when a least one piece of the type got drawn, increase the offset for the next type
+		if(addOffset)
+		{
+			offset += 10 * pixelScale;
 		}
 	}
 }
@@ -271,21 +317,27 @@ Sprite pieceShadowSprites[4], Vector2i mousePos, Vector2i pickedUpPiece, bool pi
 // function to update the list of beaten pieces
 void updateBeatenPieces(int pieces[8][8], int (&beatenPieces)[12])
 {
+	// go trough every possible piece
 	for (int i = 0; i < 12; i++)
 	{
+		// reset piece count to the start count
+		// for example white pawns to eight, since there were eight pawns at the start
 		if (i == 0 || i == 6)
 		{
 			beatenPieces[i] = 8;
 		}
+		// here rooks, knights and bishops, both white and black get reset
 		else if (i == 1 || i == 7 || i == 2 || i == 8 || i == 3 || i == 9)
 		{
 			beatenPieces[i] = 2;
 		}
+		// here the king and queen of white and black get reset
 		else
 		{
 			beatenPieces[i] = 1;
 		}
-
+		
+		// loop through every field and if there is a piece, remove 1 from its count -> you will end up with the amount of pieces beaten for each type
 		for (int y = 0; y < 8; y++)
 		{
 			for (int x = 0; x < 8; x++)
