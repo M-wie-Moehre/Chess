@@ -23,9 +23,13 @@ int main()
 		{1, 1, 1, 1, 1, 1, 1, 1},
 		{2, 3, 4, 5, 6, 4, 3, 2}
 	};
+	int pieceCounts[12] = {8, 2, 2, 2, 1, 1, 8, 2, 2, 2, 1, 1};
 
-	void drawPieces(RenderWindow& window, int pieces[8][8], Sprite pieceSprites[12], Sprite pieceShadowSprites[4], 
+	void updatePieceCounts(int pieces[8][8], int (&pieceCounts)[12]);
+
+	void drawPieces(RenderWindow &window, int pieces[8][8], Sprite pieceSprites[12], Sprite pieceShadowSprites[4], 
 	Vector2i mousePos, Vector2i pickedUpPiece, bool piecePickedUp);
+	void drawBeatenPieces(RenderWindow &window, int pieceCounts[12], Sprite pieceSprites[12], Sprite pieceShadow[4]);
 
 	// textures and sprites
 	Texture boardTexture;
@@ -143,6 +147,8 @@ int main()
 
 								pickedUpPiece = {-1, -1};
 								piecePickedUp = false;
+
+								updatePieceCounts(pieces, pieceCounts);
 							}
 						}
 					}
@@ -164,6 +170,9 @@ int main()
 		// draw pieces
 		drawPieces(window, pieces, pieceSprites, pieceShadowsSprites, mousePos, pickedUpPiece, piecePickedUp);
 
+		// draw beaten pieces
+		drawBeatenPieces(window, pieceCounts, pieceSprites, pieceShadowsSprites);
+
 		// display everything you have drawn at once
 		window.display();
 	}
@@ -172,7 +181,7 @@ int main()
 }
 
 // function to draw all pieces
-void drawPieces(RenderWindow& window, int pieces[8][8], Sprite pieceSprites[12], Sprite pieceShadowSprites[4], Vector2i mousePos, 
+void drawPieces(RenderWindow &window, int pieces[8][8], Sprite pieceSprites[12], Sprite pieceShadowSprites[4], Vector2i mousePos, 
 Vector2i pickedUpPiece, bool piecePickedUp)
 {
 	// go trough every piece
@@ -237,6 +246,34 @@ Vector2i pickedUpPiece, bool piecePickedUp)
 			window.draw(pieceShadowSprites[currentShadowIndex], BlendMultiply);
 		}
 	}
+}
+
+void updatePieceCounts(int pieces[8][8], int (&pieceCounts)[12])
+{
+	for (int i = 0; i < 12; i++)
+	{
+		pieceCounts[i] = 0;
+		for (int y = 0; y < 8; y++)
+		{
+			for (int x = 0; x < 8; x++)
+			{
+				if (pieces[y][x] == i + 1)
+				{
+					pieceCounts[i] += 1;
+				}
+			}
+		}
+	}
+}
+
+// function to draw beaten pieces
+void drawBeatenPieces(RenderWindow &window, int pieceCounts[12], Sprite pieceSprites[12], Sprite pieceShadow[4])
+{
+	for (int i = 0; i < 12; i++)
+	{
+		
+	}
+	
 }
 
 // function to load all textures for the pieces
