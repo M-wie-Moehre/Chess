@@ -33,6 +33,7 @@ int main()
 	// function to draw all pieces
 	void drawPieces(RenderWindow &window, int pixelScale, Vector2i boardPosition, int pieces[8][8], int beatenPieces[12], Sprite (&pieceSprites)[12], 
 	Sprite pieceShadowSprites[4], Vector2i mousePos, Vector2i pickedUpPiece, bool piecePickedUp);
+	bool canPieceMoveHere(int piece, Vector2i piecePosition, Vector2i mousePosition);
 
 	// textures and sprites
 	Texture pieceTextures[12];
@@ -138,20 +139,10 @@ int main()
 								pickedUpPiece = {-1, -1};
 								piecePickedUp = false;
 							}
-							// if you place the picked up piece on an empty field
-							else if (piecePickedUp && pieces[mousePos.y][mousePos.x] == 0)
-							{
-								// switch the pieces (empty <-> pickedUpPiece)
-								pieces[mousePos.y][mousePos.x] = pieces[pickedUpPiece.y][pickedUpPiece.x];
-								pieces[pickedUpPiece.y][pickedUpPiece.x] = 0;
-
-								pickedUpPiece = {-1, -1};
-								piecePickedUp = false;
-							}
-							// if you place the piece on another piece
-							else if (piecePickedUp && pieces[mousePos.y][mousePos.x] != 0 && ((pieces[mousePos.y][mousePos.x] <= 6 && 
-							pieces[pickedUpPiece.y][pickedUpPiece.x] >= 7) || (pieces[mousePos.y][mousePos.x] >= 7 && 
-							pieces[pickedUpPiece.y][pickedUpPiece.x] <= 6)))
+							// if you place the picked up piece somewhere else, not on the same color
+							else if (piecePickedUp && canPieceMoveHere(pieces[pickedUpPiece.y][pickedUpPiece.x] - 1, pickedUpPiece, mousePos) &&
+							((pieces[mousePos.y][mousePos.x] <= 6 && pieces[pickedUpPiece.y][pickedUpPiece.x] >= 7) || 
+							(pieces[mousePos.y][mousePos.x] >= 7 && pieces[pickedUpPiece.y][pickedUpPiece.x] <= 6)))
 							{
 								// switch the pieces (empty <-> pickedUpPiece)
 								pieces[mousePos.y][mousePos.x] = pieces[pickedUpPiece.y][pickedUpPiece.x];
@@ -161,6 +152,10 @@ int main()
 								piecePickedUp = false;
 
 								updateBeatenPieces(pieces, beatenPieces);
+							}
+							else if (piecePickedUp && !canPieceMoveHere(pieces[pickedUpPiece.y][pickedUpPiece.x] - 1, pickedUpPiece, mousePos))
+							{
+								cout << pickedUpPiece.x << pickedUpPiece.y << endl;
 							}
 						}
 					}
@@ -187,6 +182,68 @@ int main()
 	}
 
 	return 0;
+}
+
+bool canPieceMoveHere(int piece, Vector2i piecePosition, Vector2i mousePosition)
+{
+	if (piece == 0)
+	{
+		if (piecePosition.x != mousePosition.x && piecePosition.y + 1 != mousePosition.y)
+		{
+			return false;
+		}
+	}
+	else if (piece == 6)
+	{
+		if (piecePosition.x != mousePosition.x && piecePosition.y - 1 != mousePosition.y)
+		{
+			return false;
+		}
+	}
+	else if (piece == 1 || piece == 7)
+	{
+		if (piecePosition.x != mousePosition.x && piecePosition.y != mousePosition.y)
+		{
+			return false;
+		}
+	}
+	else if (piece == 2 || piece == 8)
+	{
+		if ((piecePosition.x - 1 != mousePosition.x && piecePosition.y + 2 != mousePosition.y) ||
+		(piecePosition.x + 1 != mousePosition.x && piecePosition.y + 2 != mousePosition.y) ||
+		(piecePosition.x + 1 != mousePosition.x && piecePosition.y - 2 != mousePosition.y) ||
+		(piecePosition.x - 1 != mousePosition.x && piecePosition.y - 2 != mousePosition.y) ||
+		(piecePosition.x - 2 != mousePosition.x && piecePosition.y + 1 != mousePosition.y) ||
+		(piecePosition.x + 2 != mousePosition.x && piecePosition.y + 1 != mousePosition.y) ||
+		(piecePosition.x + 2 != mousePosition.x && piecePosition.y - 1 != mousePosition.y) ||
+		(piecePosition.x - 2 != mousePosition.x && piecePosition.y - 1 != mousePosition.y))
+		{
+			return false;
+		}
+	}
+	else if (piece == 3 || piece == 9)
+	{
+		if (abs(piecePosition.x - mousePosition.x) != abs(piecePosition.y - mousePosition.y))
+		{
+			return false;
+		}
+	}
+	else if (piece == 4 || piece == 10)
+	{
+		if (abs(piecePosition.x - mousePosition.x) != abs(piecePosition.y - mousePosition.y) && 
+		piecePosition.x != mousePosition.x && piecePosition.y != mousePosition.y)
+		{
+			return false;
+		}
+	}
+	else if (piece == 5 || piece == 11)
+	{
+		if (abs(piecePosition.x - mousePosition.x) < 1 || abs(piecePosition.y - mousePosition.y) < 1)
+		{
+			return false;
+		}
+	}
+	return true;
 }
 
 // function to draw one piece at a position
