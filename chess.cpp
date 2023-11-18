@@ -11,11 +11,13 @@ int main()
 {
 	// local variables and functions
 	Color backgroundColor(25, 51, 45);
+	Color invalidFieldColor(255, 148, 148);
 	int pixelScale = 4; // the factor, on how much the textures get scaled up
 	int windowSizeX = 800;
 	int windowSizeY = 800;
 
-	// start position of all pieces (0 = empty, 1 = pawn, 2 = rook, 3 = knight, 4 = bishop, 5 = queen, 6 = king, for black += 6)
+	// saves the position of all pieces on the board (0 = empty, 1 = white pawn, 2 = white rook, 3 = white knight, 4 = white bishop, 
+	// 5 = white queen, 6 = white king, for black += 6)
 	int pieces[8][8] = {
 		{8, 9, 10, 11, 12, 10, 9, 8},
 		{7, 7, 7, 7, 7, 7, 7, 7},
@@ -23,8 +25,8 @@ int main()
 		{0, 0, 0, 0, 0, 0, 0, 0},
 		{0, 0, 0, 0, 0, 0, 0, 0},
 		{0, 0, 0, 0, 0, 0, 0, 0},
-		{1, 1, 1, 0, 1, 1, 1, 1},
-		{2, 3, 4, 5, 0, 4, 3, 2}
+		{1, 1, 1, 1, 1, 1, 1, 1},
+		{2, 3, 4, 5, 6, 4, 3, 2}
 	};
 	int beatenPieces[12] = {0}; // saves how many pieces of each type got beaten
 
@@ -35,7 +37,7 @@ int main()
 	Sprite pieceShadowSprites[4], Vector2i mousePos, Vector2i pickedUpPiece, bool piecePickedUp);
 
 	// function that returns if the given piece can move to the given position
-	bool canPieceMoveHere(int piece, Vector2i piecePosition, Vector2i mousePosition);
+	bool canPieceMoveHere(int piece, int pieces[8][8], Vector2i piecePosition, Vector2i mousePosition);
 
 	// textures and sprites
 	Texture pieceTextures[12];
@@ -122,7 +124,7 @@ int main()
 						}
 						// when mouse is on the board
 						else
-						{
+						{						
 							// calculate mouse position on the board
 							mousePos = {(Mouse::getPosition(window).x - boardPosition.x - 3 * pixelScale) / (16 * pixelScale), 
 							(Mouse::getPosition(window).y - boardPosition.y - 3 * pixelScale) / (16 * pixelScale)};
@@ -142,7 +144,7 @@ int main()
 								piecePickedUp = false;
 							}
 							// if you place the picked up piece somewhere else, not on the same color
-							else if (piecePickedUp && canPieceMoveHere(pieces[pickedUpPiece.y][pickedUpPiece.x] - 1, pickedUpPiece, mousePos) &&
+							else if (piecePickedUp && canPieceMoveHere(pieces[pickedUpPiece.y][pickedUpPiece.x] - 1, pieces, pickedUpPiece, mousePos) &&
 							(pieces[mousePos.y][mousePos.x] == 0 ||
 							(pieces[mousePos.y][mousePos.x] <= 6 && pieces[pickedUpPiece.y][pickedUpPiece.x] >= 7) || 
 							(pieces[mousePos.y][mousePos.x] >= 7 && pieces[pickedUpPiece.y][pickedUpPiece.x] <= 6)))
@@ -183,34 +185,101 @@ int main()
 	return 0;
 }
 
-// function that returns if the given piece can jump to the given position
-bool canPieceMoveHere(int piece, Vector2i piecePosition, Vector2i mousePosition)
+// function that returns true if a piece would jump over another piece when moved
+bool isPieceInWay(int pieces[8][8], Vector2i piecePosition, Vector2i mousePosition)
 {
-	// go trough every piece type
-	if (piece == 0)
+	if (piecePosition.y == mousePosition.y)
+	{
+		int directionToMove = piecePosition.x > mousePosition.x ? -1 : 1;
+
+		for (int x = piecePosition.x + directionToMove; x != mousePosition.x ; x += directionToMove)
+		{
+			if (pieces[piecePosition.y][x] != 0)
+			{
+				return true;
+			}
+		}
+		return false;
+	}
+	else if (piecePosition.x == mousePosition.x)
+	{
+		int directionToMove = piecePosition.y > mousePosition.y ? -1 : 1;
+
+		for (int y = piecePosition.y + directionToMove; y != mousePosition.y ; y += directionToMove)
+		{
+			if (pieces[y][piecePosition.x] != 0)
+			{
+				return true;
+			}
+		}
+		return false;
+	}
+	else if(abs(piecePosition.x - mousePosition.x) == abs(piecePosition.y - mousePosition.y))
+	{
+		int directionToMoveX = piecePosition.x > mousePosition.x ? -1 : 1;
+		int directionToMoveY = piecePosition.y > mousePosition.y ? -1 : 1;
+
+		int stepsToMove = abs(piecePosition.x - mousePosition.x);
+
+		cout << "lol" << directionToMoveX << directionToMoveY << endl;
+
+		for (int i = 1; i < stepsToMove ; i++)
+		{
+			if (pieces[piecePosition.y + i * directionToMoveY][piecePosition.x + i * directionToMoveX] != 0)
+			{
+				return true;
+			}
+		}
+		return false;
+	}
+	return true;
+}
+
+// function that returns if the given piece can jump to the given position
+bool canPieceMoveHere(int piece, int pieces[8][8], Vector2i piecePosition, Vector2i mousePosition)
+{
+	// go through every piece type
+	if (piece == 0) // white pawn
 	{
 		// if the position the piece wants to jump to is invalid, return false
-		if (piecePosition.x != mousePosition.x || piecePosition.y - 1 != mousePosition.y)
+		// for pawn, make sure it can move 2 steps the first time
+		if (piecePosition.x != mousePosition.x || (piecePosition.y == 6 && (piecePosition.y - 2 > mousePosition.y || piecePosition.y < mousePosition.y)) 
+		|| (piecePosition.y < 6 && (piecePosition.y - 1 > mousePosition.y || piecePosition.y < mousePosition.y)))
+		{
+			return false;
+		}
+		else if (isPieceInWay(pieces, piecePosition, mousePosition))
 		{
 			return false;
 		}
 	}
-	else if (piece == 6)
+	else if (piece == 6) // black pawn
 	{
-		if (piecePosition.x != mousePosition.x || piecePosition.y + 1 != mousePosition.y)
+		if (piecePosition.x != mousePosition.x || (piecePosition.y == 1 && (piecePosition.y + 2 < mousePosition.y || piecePosition.y > mousePosition.y)) 
+		|| (piecePosition.y > 1 && (piecePosition.y + 1 < mousePosition.y || piecePosition.y > mousePosition.y)))
+		{
+			return false;
+		}
+		else if (isPieceInWay(pieces, piecePosition, mousePosition))
 		{
 			return false;
 		}
 	}
-	else if (piece == 1 || piece == 7)
+	else if (piece == 1 || piece == 7) // black and white rook
 	{
+		// make sure it only moves verical and horizontal
 		if (piecePosition.x != mousePosition.x && piecePosition.y != mousePosition.y)
 		{
 			return false;
 		}
+		else if (isPieceInWay(pieces, piecePosition, mousePosition))
+		{
+			return false;
+		}
 	}
-	else if (piece == 2 || piece == 8)
+	else if (piece == 2 || piece == 8) // black and white knight
 	{
+		// check all positions the knight could jump to
 		if (!(piecePosition.x - 1 == mousePosition.x && piecePosition.y + 2 == mousePosition.y) &&
 		!(piecePosition.x + 1 == mousePosition.x && piecePosition.y + 2 == mousePosition.y) &&
 		!(piecePosition.x + 1 == mousePosition.x && piecePosition.y - 2 == mousePosition.y) &&
@@ -223,23 +292,34 @@ bool canPieceMoveHere(int piece, Vector2i piecePosition, Vector2i mousePosition)
 			return false;
 		}
 	}
-	else if (piece == 3 || piece == 9)
+	else if (piece == 3 || piece == 9) // black and white bishop
 	{
+		// make sure it only moves diagonal
 		if (abs(piecePosition.x - mousePosition.x) != abs(piecePosition.y - mousePosition.y))
 		{
 			return false;
 		}
+		else if (isPieceInWay(pieces, piecePosition, mousePosition))
+		{
+			return false;
+		}
 	}
-	else if (piece == 4 || piece == 10)
+	else if (piece == 4 || piece == 10) // black and white queen
 	{
+		// make sure it only moves horizontal, vertical and diagonal
 		if (abs(piecePosition.x - mousePosition.x) != abs(piecePosition.y - mousePosition.y) && 
 		piecePosition.x != mousePosition.x && piecePosition.y != mousePosition.y)
 		{
 			return false;
 		}
+		else if (isPieceInWay(pieces, piecePosition, mousePosition))
+		{
+			return false;
+		}
 	}
-	else if (piece == 5 || piece == 11)
+	else if (piece == 5 || piece == 11) // black and white king
 	{
+		// make sure it only moves one step
 		if (abs(piecePosition.x - mousePosition.x) > 1 || abs(piecePosition.y - mousePosition.y) > 1)
 		{
 			return false;
@@ -301,7 +381,7 @@ Sprite pieceShadowSprites[4], Vector2i mousePos, Vector2i pickedUpPiece, bool pi
 	/*
 		draw pieces, that are still on the board
 	*/
-	// go trough every field
+	// go through every field
 	for (int y = 0; y < 8; y++)
 	{
 		for (int x = 0; x < 8; x++)
@@ -331,13 +411,13 @@ Sprite pieceShadowSprites[4], Vector2i mousePos, Vector2i pickedUpPiece, bool pi
 		draw beaten pieces
 	*/
 	int offset = 0; // saves how much the current piece needs to be shiftet on the x-axis
-	// go trough the list of beaten pieces
-	// go trough white pieces first
+	// go through the list of beaten pieces
+	// go through white pieces first
 	for (int i = 0; i < 6; i++)
 	{
 		bool addOffset = false;
 
-		// go trough every piece of one type
+		// go through every piece of one type
 		for (int j = 0; j < beatenPieces[i]; j++)
 		{
 			Vector2i position = {boardPosition.x + offset, 40};
@@ -354,11 +434,11 @@ Sprite pieceShadowSprites[4], Vector2i mousePos, Vector2i pickedUpPiece, bool pi
 	}
 
 	offset = 0; // restet offset for black pieces
-	// go trough black pieces
+	// go through black pieces
 	for (int i = 6; i < 12; i++)
 	{
 		bool addOffset = false;
-		// go trough every piece of one type
+		// go through every piece of one type
 		for (int j = 0; j < beatenPieces[i]; j++)
 		{
 			Vector2i position = {boardPosition.x + offset, 716};
@@ -378,7 +458,7 @@ Sprite pieceShadowSprites[4], Vector2i mousePos, Vector2i pickedUpPiece, bool pi
 // function to update the list of beaten pieces
 void updateBeatenPieces(int pieces[8][8], int (&beatenPieces)[12])
 {
-	// go trough every possible piece
+	// go through every possible piece
 	for (int i = 0; i < 12; i++)
 	{
 		// reset piece count to the start count
