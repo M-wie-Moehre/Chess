@@ -11,7 +11,7 @@ int main()
 {
 	// local variables and functions
 	Color backgroundColor(25, 51, 45);
-	Color invalidFieldColor(255, 148, 148);
+	Color invalidFieldColor(130, 130, 130);
 	int pixelScale = 4; // the factor, on how much the textures get scaled up
 	int windowSizeX = 800;
 	int windowSizeY = 800;
@@ -29,15 +29,16 @@ int main()
 		{2, 3, 4, 5, 6, 4, 3, 2}
 	};
 	int beatenPieces[12] = {0}; // saves how many pieces of each type got beaten
+	bool validPiecePositions[8][8];
 
-	void updateBeatenPieces(int pieces[8][8], int (&beatenPieces)[12]); // function to update the list of beaten pieces
+	// function to update the list of beaten pieces
+	void updateBeatenPieces(int pieces[8][8], int (&beatenPieces)[12]);
+	// function that updates the list of valid positions a piece can move to
+	void updateValidPiecePositions(int piece, int pieces[8][8], Vector2i piecePosition, bool (&validPiecePositions)[8][8]);
 
 	// function to draw all pieces
 	void drawPieces(RenderWindow &window, int pixelScale, Vector2i boardPosition, int pieces[8][8], int beatenPieces[12], Sprite (&pieceSprites)[12], 
 	Sprite pieceShadowSprites[4], Vector2i mousePos, Vector2i pickedUpPiece, bool piecePickedUp);
-
-	// function that returns if the given piece can move to the given position
-	bool canPieceMoveHere(int piece, int pieces[8][8], Vector2i piecePosition, Vector2i mousePosition);
 
 	// textures and sprites
 	Texture pieceTextures[12];
@@ -135,23 +136,18 @@ int main()
 								// pick the piece up
 								pickedUpPiece = mousePos;
 								piecePickedUp = true;
+								updateValidPiecePositions(pieces[pickedUpPiece.y][pickedUpPiece.x] - 1, pieces, pickedUpPiece, validPiecePositions);
 							}
-							// if you place a picked up piece back at the same spot
-							else if (piecePickedUp && pickedUpPiece == mousePos)
+							// if you place the picked up piece on a valid field
+							else if (piecePickedUp && validPiecePositions[mousePos.y][mousePos.x])
 							{
-								// put the piece down, without changing anything
-								pickedUpPiece = {-1, -1};
-								piecePickedUp = false;
-							}
-							// if you place the picked up piece somewhere else, not on the same color
-							else if (piecePickedUp && canPieceMoveHere(pieces[pickedUpPiece.y][pickedUpPiece.x] - 1, pieces, pickedUpPiece, mousePos) &&
-							(pieces[mousePos.y][mousePos.x] == 0 ||
-							(pieces[mousePos.y][mousePos.x] <= 6 && pieces[pickedUpPiece.y][pickedUpPiece.x] >= 7) || 
-							(pieces[mousePos.y][mousePos.x] >= 7 && pieces[pickedUpPiece.y][pickedUpPiece.x] <= 6)))
-							{
-								// switch the pieces (empty <-> pickedUpPiece)
-								pieces[mousePos.y][mousePos.x] = pieces[pickedUpPiece.y][pickedUpPiece.x];
-								pieces[pickedUpPiece.y][pickedUpPiece.x] = 0;
+								// if you put the piece not back at the same spot
+								if (pickedUpPiece != mousePos)
+								{
+									// switch the pieces (empty <-> pickedUpPiece)
+									pieces[mousePos.y][mousePos.x] = pieces[pickedUpPiece.y][pickedUpPiece.x];
+									pieces[pickedUpPiece.y][pickedUpPiece.x] = 0;
+								}
 
 								pickedUpPiece = {-1, -1};
 								piecePickedUp = false;
@@ -159,6 +155,11 @@ int main()
 								updateBeatenPieces(pieces, beatenPieces);
 							}
 						}
+					}
+					else if (event.mouseButton.button == Mouse::Right) // when right mouse button is pressed, put piece back
+					{
+						pickedUpPiece = {-1, -1};
+						piecePickedUp =  false;
 					}
 					break;
 					
@@ -175,6 +176,29 @@ int main()
 		window.draw(boardShadowSprite, BlendMultiply);
 		window.draw(boardSprite);
 
+		// draw invalid fields (fields, the picked up piece can't move to)
+		if (piecePickedUp)
+		{
+			// go through every field
+			for (int x = 0; x < 8; x++)
+			{
+				for (int y = 0; y < 8; y++)
+				{
+					// check if it is not valid
+					if (!validPiecePositions[y][x])
+					{
+						// create a rectangle at the position of the field and draw it
+						RectangleShape invalidField;
+						invalidField.setFillColor(invalidFieldColor);
+						invalidField.setSize(Vector2f(16 * pixelScale, 16 * pixelScale));
+						invalidField.setPosition(boardPosition.x + 3 * pixelScale + x * 16 * pixelScale, boardPosition.y + 3 * pixelScale + y * 16 * pixelScale);
+
+						window.draw(invalidField, BlendMultiply);
+					}
+				}
+			}
+		}
+
 		// draw all pieces
 		drawPieces(window, pixelScale, boardPosition, pieces, beatenPieces, pieceSprites, pieceShadowsSprites, mousePos, pickedUpPiece, piecePickedUp);
 
@@ -188,43 +212,83 @@ int main()
 // function that returns true if a piece would jump over another piece when moved
 bool isPieceInWay(int pieces[8][8], Vector2i piecePosition, Vector2i mousePosition)
 {
+	// if the piece is not moved at all or just one field, return false, since there can be no piece in the way
+	if (abs(piecePosition.x - mousePosition.x) < 2 && abs(piecePosition.y - mousePosition.y) < 2)
+	{
+		return false;
+	}
+
+	// if the piece is moved horizontal
 	if (piecePosition.y == mousePosition.y)
 	{
-		int directionToMove = piecePosition.x > mousePosition.x ? -1 : 1;
-
-		for (int x = piecePosition.x + directionToMove; x != mousePosition.x ; x += directionToMove)
+		// if the piece is moved to the right
+		if (piecePosition.x < mousePosition.x)
 		{
-			if (pieces[piecePosition.y][x] != 0)
+			// go through every field in between and check if there is a piece
+			for (int x = piecePosition.x + 1; x < mousePosition.x; x++)
 			{
-				return true;
+				if (pieces[piecePosition.y][x] != 0)
+				{
+					return true;
+				}
 			}
+			return false;
 		}
-		return false;
+		// if the piece is moved to the left
+		else
+		{
+			for (int x = piecePosition.x - 1; x > mousePosition.x; x--)
+			{
+				if (pieces[piecePosition.y][x] != 0)
+				{
+					return true;
+				}
+			}
+			return false;
+		}		
 	}
+	// if the piece is moved vertical
 	else if (piecePosition.x == mousePosition.x)
 	{
-		int directionToMove = piecePosition.y > mousePosition.y ? -1 : 1;
-
-		for (int y = piecePosition.y + directionToMove; y != mousePosition.y ; y += directionToMove)
+		// if the piece is moved down
+		if (piecePosition.y < mousePosition.y)
 		{
-			if (pieces[y][piecePosition.x] != 0)
+			for (int y = piecePosition.y + 1; y < mousePosition.y; y++)
 			{
-				return true;
+				if (pieces[y][piecePosition.x] != 0)
+				{
+					return true;
+				}
 			}
+			return false;
 		}
-		return false;
+		// if the piece is moved up
+		else
+		{
+			for (int y = piecePosition.y - 1; y > mousePosition.y; y--)
+			{
+				if (pieces[y][piecePosition.x] != 0)
+				{
+					return true;
+				}
+			}
+			return false;
+		}		
 	}
+	// if the piece is moved diagonal
 	else if(abs(piecePosition.x - mousePosition.x) == abs(piecePosition.y - mousePosition.y))
 	{
+		// get directions x: -1 = left, 1 = right; y: -1 = up, 1 = down
 		int directionToMoveX = piecePosition.x > mousePosition.x ? -1 : 1;
 		int directionToMoveY = piecePosition.y > mousePosition.y ? -1 : 1;
 
+		// calculate how many steps the for loop needs to go through
 		int stepsToMove = abs(piecePosition.x - mousePosition.x);
 
-		cout << "lol" << directionToMoveX << directionToMoveY << endl;
-
-		for (int i = 1; i < stepsToMove ; i++)
+		// count up the steps
+		for (int i = 1; i < stepsToMove; i++)
 		{
+			// add the step to the respectiv direction at both axis
 			if (pieces[piecePosition.y + i * directionToMoveY][piecePosition.x + i * directionToMoveX] != 0)
 			{
 				return true;
@@ -238,6 +302,25 @@ bool isPieceInWay(int pieces[8][8], Vector2i piecePosition, Vector2i mousePositi
 // function that returns if the given piece can jump to the given position
 bool canPieceMoveHere(int piece, int pieces[8][8], Vector2i piecePosition, Vector2i mousePosition)
 {
+	/*
+		general rules
+	*/
+	// if the piece is placed back at the same spot
+	if (piecePosition == mousePosition)
+	{
+		return true;
+	}
+
+	// if the piece is placed on the same color
+	if (((piece > 0 && piece < 7) && (pieces[mousePosition.y][mousePosition.x] > 0 && pieces[mousePosition.y][mousePosition.x] < 7)) ||
+	((piece > 6 && piece < 13) && (pieces[mousePosition.y][mousePosition.x] >6 && pieces[mousePosition.y][mousePosition.x] < 13)))
+	{
+		return false;
+	}
+
+	/*
+		piece rules
+	*/
 	// go through every piece type
 	if (piece == 0) // white pawn
 	{
@@ -328,6 +411,20 @@ bool canPieceMoveHere(int piece, int pieces[8][8], Vector2i piecePosition, Vecto
 
 	// else the piece can jump to the given position, so return true
 	return true;
+}
+
+// function that updates the list of valid positions a piece can move to
+void updateValidPiecePositions(int piece, int pieces[8][8], Vector2i piecePosition, bool (&validPiecePositions)[8][8])
+{
+	// go through every field
+	for (int x = 0; x < 8; x++)
+	{
+		for (int y = 0; y < 8; y++)
+		{
+			// enter the x and y coordinate as the mouse position to check if the piece can move there
+			validPiecePositions[y][x] = canPieceMoveHere(piece, pieces, piecePosition, Vector2i(x, y));
+		}
+	}
 }
 
 // function to draw one piece at a position
@@ -532,7 +629,6 @@ int loadPieceTextures(int pixelScale, Texture textures[12], Sprite sprites[12], 
 		pieceShadowsSprites[i].setTexture(pieceShadowsTextures[i]);
 		pieceShadowsSprites[i].setScale(pixelScale, pixelScale); // one pixel on the images is equal to five pixel on the window
 	}
-	
 	
 	return 0;
 }
