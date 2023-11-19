@@ -31,10 +31,14 @@ int main()
 	int beatenPieces[12] = {0}; // saves how many pieces of each type got beaten
 	bool validPiecePositions[8][8];
 
+	int whiteEnPassant = -1; // saves which white pawn moved two fields forward and can be beaten en passant (-1: none)
+	int blackEnPassant = -1; // saves which black pawn moved two fields forward and can be beaten en passant (-1: none)
+
 	// function to update the list of beaten pieces
 	void updateBeatenPieces(int pieces[8][8], int (&beatenPieces)[12]);
 	// function that updates the list of valid positions a piece can move to
-	void updateValidPiecePositions(int piece, int pieces[8][8], Vector2i piecePosition, bool (&validPiecePositions)[8][8]);
+	void updateValidPiecePositions(int piece, int pieces[8][8], Vector2i piecePosition, bool (&validPiecePositions)[8][8], 
+	int whiteEnPassant, int blackEnPassant);
 
 	// function to draw all pieces
 	void drawPieces(RenderWindow &window, int pixelScale, Vector2i boardPosition, int pieces[8][8], int beatenPieces[12], Sprite (&pieceSprites)[12], 
@@ -85,6 +89,7 @@ int main()
 	Vector2i mousePos = {-1, -1}; // saves, which field the mouse clicked on
 	Vector2i pickedUpPiece = {-1, -1}; // which piece is picked up (no piece = {-1, -1})
 	bool piecePickedUp = false; // is a piece picked up
+	bool whiteToMove = true; // is white player the next to move
 
     // create and open a new graphics window of size 800x800 Pixel and a title
 	RenderWindow window(VideoMode(windowSizeX, windowSizeY), "Chess");
@@ -133,10 +138,15 @@ int main()
 							// if no piece is picked up and at the mouse position is a piece
 							if (!piecePickedUp && pieces[mousePos.y][mousePos.x] != 0)
 							{
-								// pick the piece up
-								pickedUpPiece = mousePos;
-								piecePickedUp = true;
-								updateValidPiecePositions(pieces[pickedUpPiece.y][pickedUpPiece.x] - 1, pieces, pickedUpPiece, validPiecePositions);
+								// if white is to move and the piece is white or black is to move and the piece is black, pick the piece up
+								if ((whiteToMove && pieces[mousePos.y][mousePos.x] - 1 >= 0 && pieces[mousePos.y][mousePos.x] - 1 <= 5) ||
+								(!whiteToMove && pieces[mousePos.y][mousePos.x] - 1 >= 6 && pieces[mousePos.y][mousePos.x] - 1 <= 11))
+								{
+									pickedUpPiece = mousePos;
+									piecePickedUp = true;
+									updateValidPiecePositions(pieces[pickedUpPiece.y][pickedUpPiece.x] - 1, pieces, pickedUpPiece, validPiecePositions, 
+									whiteEnPassant, blackEnPassant);
+								}
 							}
 							// if you place the picked up piece on a valid field
 							else if (piecePickedUp && validPiecePositions[mousePos.y][mousePos.x])
@@ -144,9 +154,45 @@ int main()
 								// if you put the piece not back at the same spot
 								if (pickedUpPiece != mousePos)
 								{
-									// switch the pieces (empty <-> pickedUpPiece)
-									pieces[mousePos.y][mousePos.x] = pieces[pickedUpPiece.y][pickedUpPiece.x];
-									pieces[pickedUpPiece.y][pickedUpPiece.x] = 0;
+									// if a white pawn is moved two fields forward
+									if (pieces[pickedUpPiece.y][pickedUpPiece.x] - 1 == 0 && pickedUpPiece.y - 2 == mousePos.y)
+									{
+										whiteEnPassant = pickedUpPiece.x;
+									}
+									else if (pieces[pickedUpPiece.y][pickedUpPiece.x] - 1 == 6 && pickedUpPiece.y + 2 == mousePos.y)
+									{
+										blackEnPassant = pickedUpPiece.x;
+									}
+									else if (whiteToMove)
+									{
+										whiteEnPassant = -1;
+									}
+									else if (!whiteToMove)
+									{
+										blackEnPassant = -1;
+									}
+
+									if (pieces[pickedUpPiece.y][pickedUpPiece.x] - 1 == 0 && pickedUpPiece.y == 3 && mousePos.x == blackEnPassant)
+									{
+										pieces[mousePos.y][mousePos.x] = pieces[pickedUpPiece.y][pickedUpPiece.x];
+										pieces[pickedUpPiece.y][pickedUpPiece.x] = 0;
+										pieces[mousePos.y + 1][mousePos.x] = 0;
+									}
+									else if (pieces[pickedUpPiece.y][pickedUpPiece.x] - 1 == 6 && pickedUpPiece.y == 4 && mousePos.x == whiteEnPassant)
+									{
+										pieces[mousePos.y][mousePos.x] = pieces[pickedUpPiece.y][pickedUpPiece.x];
+										pieces[pickedUpPiece.y][pickedUpPiece.x] = 0;
+										pieces[mousePos.y - 1][mousePos.x] = 0;
+									}
+									else
+									{
+										// switch the pieces (empty <-> pickedUpPiece)
+										pieces[mousePos.y][mousePos.x] = pieces[pickedUpPiece.y][pickedUpPiece.x];
+										pieces[pickedUpPiece.y][pickedUpPiece.x] = 0;
+									}
+
+
+									whiteToMove = !whiteToMove;
 								}
 
 								pickedUpPiece = {-1, -1};
@@ -300,7 +346,7 @@ bool isPieceInWay(int pieces[8][8], Vector2i piecePosition, Vector2i mousePositi
 }
 
 // function that returns if the given piece can jump to the given position
-bool canPieceMoveHere(int piece, int pieces[8][8], Vector2i piecePosition, Vector2i mousePosition)
+bool canPieceMoveHere(int piece, int pieces[8][8], Vector2i piecePosition, Vector2i mousePosition, int whiteEnPassant, int blackEnPassant)
 {
 	/*
 		general rules
@@ -330,13 +376,13 @@ bool canPieceMoveHere(int piece, int pieces[8][8], Vector2i piecePosition, Vecto
 			{
 				return true;
 			}
-			else if (piecePosition.x - 1 == mousePosition.x && pieces[piecePosition.y - 1][piecePosition.x - 1] - 1 >= 6 && 
-			pieces[piecePosition.y - 1][piecePosition.x - 1] - 1 <= 11)
+			else if (piecePosition.x - 1 == mousePosition.x && ((pieces[piecePosition.y - 1][piecePosition.x - 1] - 1 >= 6 && 
+			pieces[piecePosition.y - 1][piecePosition.x - 1] - 1 <= 11) || (mousePosition.x == blackEnPassant && piecePosition.y == 3)))
 			{
 				return true;
 			}
-			else if (piecePosition.x + 1 == mousePosition.x && pieces[piecePosition.y - 1][piecePosition.x + 1] - 1 >= 6 && 
-			pieces[piecePosition.y - 1][piecePosition.x + 1] - 1 <= 11)
+			else if (piecePosition.x + 1 == mousePosition.x && ((pieces[piecePosition.y - 1][piecePosition.x + 1] - 1 >= 6 && 
+			pieces[piecePosition.y - 1][piecePosition.x + 1] - 1 <= 11) || (mousePosition.x == blackEnPassant && piecePosition.y == 3)))
 			{
 				return true;
 			}
@@ -370,13 +416,13 @@ bool canPieceMoveHere(int piece, int pieces[8][8], Vector2i piecePosition, Vecto
 			{
 				return true;
 			}
-			else if (piecePosition.x - 1 == mousePosition.x && pieces[piecePosition.y + 1][piecePosition.x - 1] - 1 >= 0 && 
-			pieces[piecePosition.y + 1][piecePosition.x - 1] - 1 <= 5)
+			else if (piecePosition.x - 1 == mousePosition.x && ((pieces[piecePosition.y + 1][piecePosition.x - 1] - 1 >= 0 && 
+			pieces[piecePosition.y + 1][piecePosition.x - 1] - 1 <= 5) || (mousePosition.x == whiteEnPassant && piecePosition.y == 4)))
 			{
 				return true;
 			}
-			else if (piecePosition.x + 1 == mousePosition.x && pieces[piecePosition.y + 1][piecePosition.x + 1] - 1 >= 0 && 
-			pieces[piecePosition.y + 1][piecePosition.x + 1] - 1 <= 5)
+			else if (piecePosition.x + 1 == mousePosition.x && ((pieces[piecePosition.y + 1][piecePosition.x + 1] - 1 >= 0 && 
+			pieces[piecePosition.y + 1][piecePosition.x + 1] - 1 <= 5) || (mousePosition.x == whiteEnPassant && piecePosition.y == 4)))
 			{
 				return true;
 			}
@@ -468,7 +514,8 @@ bool canPieceMoveHere(int piece, int pieces[8][8], Vector2i piecePosition, Vecto
 }
 
 // function that updates the list of valid positions a piece can move to
-void updateValidPiecePositions(int piece, int pieces[8][8], Vector2i piecePosition, bool (&validPiecePositions)[8][8])
+void updateValidPiecePositions(int piece, int pieces[8][8], Vector2i piecePosition, bool (&validPiecePositions)[8][8], 
+int whiteEnPassant, int blackEnPassant)
 {
 	// go through every field
 	for (int x = 0; x < 8; x++)
@@ -476,7 +523,7 @@ void updateValidPiecePositions(int piece, int pieces[8][8], Vector2i piecePositi
 		for (int y = 0; y < 8; y++)
 		{
 			// enter the x and y coordinate as the mouse position to check if the piece can move there
-			validPiecePositions[y][x] = canPieceMoveHere(piece, pieces, piecePosition, Vector2i(x, y));
+			validPiecePositions[y][x] = canPieceMoveHere(piece, pieces, piecePosition, Vector2i(x, y), whiteEnPassant, blackEnPassant);
 		}
 	}
 }
