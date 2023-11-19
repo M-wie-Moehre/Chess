@@ -312,8 +312,8 @@ bool canPieceMoveHere(int piece, int pieces[8][8], Vector2i piecePosition, Vecto
 	}
 
 	// if the piece is placed on the same color
-	if (((piece > 0 && piece < 7) && (pieces[mousePosition.y][mousePosition.x] > 0 && pieces[mousePosition.y][mousePosition.x] < 7)) ||
-	((piece > 6 && piece < 13) && (pieces[mousePosition.y][mousePosition.x] >6 && pieces[mousePosition.y][mousePosition.x] < 13)))
+	if (((piece >= 0 && piece <= 5) && (pieces[mousePosition.y][mousePosition.x] - 1 >= 0 && pieces[mousePosition.y][mousePosition.x] - 1 <= 5)) ||
+	((piece >= 6 && piece <= 12) && (pieces[mousePosition.y][mousePosition.x] - 1 >= 6 && pieces[mousePosition.y][mousePosition.x] - 1 <= 12)))
 	{
 		return false;
 	}
@@ -324,26 +324,80 @@ bool canPieceMoveHere(int piece, int pieces[8][8], Vector2i piecePosition, Vecto
 	// go through every piece type
 	if (piece == 0) // white pawn
 	{
-		// if the position the piece wants to jump to is invalid, return false
-		// for pawn, make sure it can move 2 steps the first time
-		if (piecePosition.x != mousePosition.x || (piecePosition.y == 6 && (piecePosition.y - 2 > mousePosition.y || piecePosition.y < mousePosition.y)) 
-		|| (piecePosition.y < 6 && (piecePosition.y - 1 > mousePosition.y || piecePosition.y < mousePosition.y)))
+		if (piecePosition.y - 1 == mousePosition.y)
 		{
-			return false;
+			if (piecePosition.x == mousePosition.x && pieces[piecePosition.y - 1][piecePosition.x] == 0)
+			{
+				return true;
+			}
+			else if (piecePosition.x - 1 == mousePosition.x && pieces[piecePosition.y - 1][piecePosition.x - 1] - 1 >= 6 && 
+			pieces[piecePosition.y - 1][piecePosition.x - 1] - 1 <= 11)
+			{
+				return true;
+			}
+			else if (piecePosition.x + 1 == mousePosition.x && pieces[piecePosition.y - 1][piecePosition.x + 1] - 1 >= 6 && 
+			pieces[piecePosition.y - 1][piecePosition.x + 1] - 1 <= 11)
+			{
+				return true;
+			}
+			else
+			{
+				return false;
+			}
 		}
-		else if (isPieceInWay(pieces, piecePosition, mousePosition))
+		else if (piecePosition.y - 2 == mousePosition.y)
+		{
+			if (piecePosition.x == mousePosition.x && piecePosition.y == 6 && pieces[piecePosition.y - 1][piecePosition.x] == 0 && 
+			pieces[piecePosition.y - 2][piecePosition.x] == 0)
+			{
+				return true;
+			}
+			else
+			{
+				return false;
+			}
+		}
+		else
 		{
 			return false;
 		}
 	}
 	else if (piece == 6) // black pawn
 	{
-		if (piecePosition.x != mousePosition.x || (piecePosition.y == 1 && (piecePosition.y + 2 < mousePosition.y || piecePosition.y > mousePosition.y)) 
-		|| (piecePosition.y > 1 && (piecePosition.y + 1 < mousePosition.y || piecePosition.y > mousePosition.y)))
+		if (piecePosition.y + 1 == mousePosition.y)
 		{
-			return false;
+			if (piecePosition.x == mousePosition.x && pieces[piecePosition.y + 1][piecePosition.x] == 0)
+			{
+				return true;
+			}
+			else if (piecePosition.x - 1 == mousePosition.x && pieces[piecePosition.y + 1][piecePosition.x - 1] - 1 >= 0 && 
+			pieces[piecePosition.y + 1][piecePosition.x - 1] - 1 <= 5)
+			{
+				return true;
+			}
+			else if (piecePosition.x + 1 == mousePosition.x && pieces[piecePosition.y + 1][piecePosition.x + 1] - 1 >= 0 && 
+			pieces[piecePosition.y + 1][piecePosition.x + 1] - 1 <= 5)
+			{
+				return true;
+			}
+			else
+			{
+				return false;
+			}
 		}
-		else if (isPieceInWay(pieces, piecePosition, mousePosition))
+		else if (piecePosition.y + 2 == mousePosition.y)
+		{
+			if (piecePosition.x == mousePosition.x && piecePosition.y == 1 && pieces[piecePosition.y + 1][piecePosition.x] == 0 && 
+			pieces[piecePosition.y + 2][piecePosition.x] == 0)
+			{
+				return true;
+			}
+			else
+			{
+				return false;
+			}
+		}
+		else
 		{
 			return false;
 		}
