@@ -29,16 +29,22 @@ int main()
 		{2, 3, 4, 5, 6, 4, 3, 2}
 	};
 	int beatenPieces[12] = {0}; // saves how many pieces of each type got beaten
-	bool validPiecePositions[8][8];
+	bool validPiecePositions[8][8]; // saves, which fields, the current picked up piece can be put on
 
 	int whiteEnPassant = -1; // saves which white pawn moved two fields forward and can be beaten en passant (-1: none)
 	int blackEnPassant = -1; // saves which black pawn moved two fields forward and can be beaten en passant (-1: none)
+
+	// saves with which rooks, the king can still castle
+	bool whiteCastlingLeft = true;
+	bool whiteCastlingRight = true;
+	bool blackCastlingLeft = true;
+	bool blackCastlingRight = true;
 
 	// function to update the list of beaten pieces
 	void updateBeatenPieces(int pieces[8][8], int (&beatenPieces)[12]);
 	// function that updates the list of valid positions a piece can move to
 	void updateValidPiecePositions(int piece, int pieces[8][8], Vector2i piecePosition, bool (&validPiecePositions)[8][8], 
-	int whiteEnPassant, int blackEnPassant);
+	int whiteEnPassant, int blackEnPassant, int whiteCastlingLeft, int whiteCastlingRight, int blackCastlingLeft, int blackCastlingRight);
 
 	// function to draw all pieces
 	void drawPieces(RenderWindow &window, int pixelScale, Vector2i boardPosition, int pieces[8][8], int beatenPieces[12], Sprite (&pieceSprites)[12], 
@@ -84,6 +90,7 @@ int main()
 	boardShadowSprite.setScale(pixelScale, pixelScale);
 	boardShadowSprite.setPosition(boardPosition.x + 3 * pixelScale, boardPosition.y + 3 * pixelScale); // shift 3 pixels on the image scale further
 
+	// function to load all piece textures
 	loadPieceTextures(pixelScale, pieceTextures, pieceSprites, pieceShadowsTextures, pieceShadowsSprites, pieceNames);
 
 	Vector2i mousePos = {-1, -1}; // saves, which field the mouse clicked on
@@ -144,8 +151,9 @@ int main()
 								{
 									pickedUpPiece = mousePos;
 									piecePickedUp = true;
+									// update the positions, the current picked up piece can be put
 									updateValidPiecePositions(pieces[pickedUpPiece.y][pickedUpPiece.x] - 1, pieces, pickedUpPiece, validPiecePositions, 
-									whiteEnPassant, blackEnPassant);
+									whiteEnPassant, blackEnPassant, whiteCastlingLeft, whiteCastlingRight, blackCastlingLeft, blackCastlingRight);
 								}
 							}
 							// if you place the picked up piece on a valid field
@@ -154,7 +162,7 @@ int main()
 								// if you put the piece not back at the same spot
 								if (pickedUpPiece != mousePos)
 								{
-									// if a white pawn is moved two fields forward
+									// if a white pawn is moved two fields forward, enable en passant for it
 									if (pieces[pickedUpPiece.y][pickedUpPiece.x] - 1 == 0 && pickedUpPiece.y - 2 == mousePos.y)
 									{
 										whiteEnPassant = pickedUpPiece.x;
@@ -163,6 +171,7 @@ int main()
 									{
 										blackEnPassant = pickedUpPiece.x;
 									}
+									// if something else is moved, remove the en passant option
 									else if (whiteToMove)
 									{
 										whiteEnPassant = -1;
@@ -172,18 +181,53 @@ int main()
 										blackEnPassant = -1;
 									}
 
+									// if en passant is used from white pawn
 									if (pieces[pickedUpPiece.y][pickedUpPiece.x] - 1 == 0 && pickedUpPiece.y == 3 && mousePos.x == blackEnPassant)
 									{
 										pieces[mousePos.y][mousePos.x] = pieces[pickedUpPiece.y][pickedUpPiece.x];
 										pieces[pickedUpPiece.y][pickedUpPiece.x] = 0;
 										pieces[mousePos.y + 1][mousePos.x] = 0;
 									}
+									// if en passant is used from black pawn
 									else if (pieces[pickedUpPiece.y][pickedUpPiece.x] - 1 == 6 && pickedUpPiece.y == 4 && mousePos.x == whiteEnPassant)
 									{
 										pieces[mousePos.y][mousePos.x] = pieces[pickedUpPiece.y][pickedUpPiece.x];
 										pieces[pickedUpPiece.y][pickedUpPiece.x] = 0;
 										pieces[mousePos.y - 1][mousePos.x] = 0;
 									}
+									// if white king castles to the left
+									else if (pieces[pickedUpPiece.y][pickedUpPiece.x] - 1 == 5 && mousePos == Vector2i{1, 7} && whiteCastlingLeft)
+									{
+										pieces[mousePos.y][mousePos.x] = pieces[pickedUpPiece.y][pickedUpPiece.x];
+										pieces[pickedUpPiece.y][pickedUpPiece.x] = 0;
+										pieces[7][2] = pieces[7][0];
+										pieces[7][0] = 0;
+									}
+									// if white king castles to the right
+									else if (pieces[pickedUpPiece.y][pickedUpPiece.x] - 1 == 5 && mousePos == Vector2i{6, 7} && whiteCastlingRight)
+									{
+										pieces[mousePos.y][mousePos.x] = pieces[pickedUpPiece.y][pickedUpPiece.x];
+										pieces[pickedUpPiece.y][pickedUpPiece.x] = 0;
+										pieces[7][5] = pieces[7][7];
+										pieces[7][7] = 0;
+									}
+									// if white black castles to the left
+									else if (pieces[pickedUpPiece.y][pickedUpPiece.x] - 1 == 11 && mousePos == Vector2i{1, 0} && blackCastlingLeft)
+									{
+										pieces[mousePos.y][mousePos.x] = pieces[pickedUpPiece.y][pickedUpPiece.x];
+										pieces[pickedUpPiece.y][pickedUpPiece.x] = 0;
+										pieces[0][2] = pieces[0][0];
+										pieces[0][2] = 0;
+									}
+									// if white black castles to the right
+									else if (pieces[pickedUpPiece.y][pickedUpPiece.x] - 1 == 11 && mousePos == Vector2i{6, 0} && blackCastlingRight)
+									{
+										pieces[mousePos.y][mousePos.x] = pieces[pickedUpPiece.y][pickedUpPiece.x];
+										pieces[pickedUpPiece.y][pickedUpPiece.x] = 0;
+										pieces[0][5] = pieces[0][7];
+										pieces[0][7] = 0;
+									}
+									// else if a piece is moved normally
 									else
 									{
 										// switch the pieces (empty <-> pickedUpPiece)
@@ -191,17 +235,58 @@ int main()
 										pieces[pickedUpPiece.y][pickedUpPiece.x] = 0;
 									}
 
+									// check if a rook or the king is moved to determine if the king can still castle
+									// if one of the white rooks moves, only disable castling with this rook
+									if (pieces[pickedUpPiece.y][pickedUpPiece.x] - 1 == 1)
+									{
+										if (pickedUpPiece.x == 0)
+										{
+											whiteCastlingLeft = false;
+										}
+										else
+										{
+											whiteCastlingRight = false;
+										}
+									}
+									// if one of the black rooks moves, only disable castling with this rook
+									else if (pieces[pickedUpPiece.y][pickedUpPiece.x] - 1 == 7)
+									{
+										if (pickedUpPiece.x == 0)
+										{
+											blackCastlingLeft = false;
+										}
+										else
+										{
+											blackCastlingRight = false;
+										}
+									}
+									// if white king moves, disable castling for white completly
+									else if (pieces[pickedUpPiece.y][pickedUpPiece.x] - 1 == 5)
+									{
+										whiteCastlingLeft = false;
+										whiteCastlingRight = false;
+									}
+									// if black king moves, disable castling for white completly
+									else if (pieces[pickedUpPiece.y][pickedUpPiece.x] - 1 == 11)
+									{
+										blackCastlingLeft = false;
+										blackCastlingRight = false;
+									}
 
+									// change player turn
 									whiteToMove = !whiteToMove;
 								}
 
+								// put the piece down
 								pickedUpPiece = {-1, -1};
 								piecePickedUp = false;
 
+								// update the list with beaten pieces
 								updateBeatenPieces(pieces, beatenPieces);
 							}
 						}
 					}
+					// if right clicked, put the piece back
 					else if (event.mouseButton.button == Mouse::Right) // when right mouse button is pressed, put piece back
 					{
 						pickedUpPiece = {-1, -1};
@@ -346,7 +431,8 @@ bool isPieceInWay(int pieces[8][8], Vector2i piecePosition, Vector2i mousePositi
 }
 
 // function that returns if the given piece can jump to the given position
-bool canPieceMoveHere(int piece, int pieces[8][8], Vector2i piecePosition, Vector2i mousePosition, int whiteEnPassant, int blackEnPassant)
+bool canPieceMoveHere(int piece, int pieces[8][8], Vector2i piecePosition, Vector2i mousePosition, int whiteEnPassant, int blackEnPassant,
+int whiteCastlingLeft, int whiteCastlingRight, int blackCastlingLeft, int blackCastlingRight)
 {
 	/*
 		general rules
@@ -370,17 +456,22 @@ bool canPieceMoveHere(int piece, int pieces[8][8], Vector2i piecePosition, Vecto
 	// go through every piece type
 	if (piece == 0) // white pawn
 	{
+		// if the piece moves 1 field forward
 		if (piecePosition.y - 1 == mousePosition.y)
 		{
+			// check if the pawn wants to move straight if no piece is ahead
 			if (piecePosition.x == mousePosition.x && pieces[piecePosition.y - 1][piecePosition.x] == 0)
 			{
 				return true;
 			}
+			// check if the pawn wants to move diagonal if there is a piece to beat
+			// left
 			else if (piecePosition.x - 1 == mousePosition.x && ((pieces[piecePosition.y - 1][piecePosition.x - 1] - 1 >= 6 && 
 			pieces[piecePosition.y - 1][piecePosition.x - 1] - 1 <= 11) || (mousePosition.x == blackEnPassant && piecePosition.y == 3)))
 			{
 				return true;
 			}
+			// right
 			else if (piecePosition.x + 1 == mousePosition.x && ((pieces[piecePosition.y - 1][piecePosition.x + 1] - 1 >= 6 && 
 			pieces[piecePosition.y - 1][piecePosition.x + 1] - 1 <= 11) || (mousePosition.x == blackEnPassant && piecePosition.y == 3)))
 			{
@@ -391,8 +482,10 @@ bool canPieceMoveHere(int piece, int pieces[8][8], Vector2i piecePosition, Vecto
 				return false;
 			}
 		}
+		// if the pawn wants to move two field forward
 		else if (piecePosition.y - 2 == mousePosition.y)
 		{
+			// check if the pawn is still on the "base line" and there is not piece in the way
 			if (piecePosition.x == mousePosition.x && piecePosition.y == 6 && pieces[piecePosition.y - 1][piecePosition.x] == 0 && 
 			pieces[piecePosition.y - 2][piecePosition.x] == 0)
 			{
@@ -410,17 +503,22 @@ bool canPieceMoveHere(int piece, int pieces[8][8], Vector2i piecePosition, Vecto
 	}
 	else if (piece == 6) // black pawn
 	{
+		// if the piece moves 1 field forward (globaly backwards)
 		if (piecePosition.y + 1 == mousePosition.y)
 		{
+			// check if the pawn wants to move straight if no piece is ahead
 			if (piecePosition.x == mousePosition.x && pieces[piecePosition.y + 1][piecePosition.x] == 0)
 			{
 				return true;
 			}
+			// check if the pawn wants to move diagonal if there is a piece to beat
+			// left
 			else if (piecePosition.x - 1 == mousePosition.x && ((pieces[piecePosition.y + 1][piecePosition.x - 1] - 1 >= 0 && 
 			pieces[piecePosition.y + 1][piecePosition.x - 1] - 1 <= 5) || (mousePosition.x == whiteEnPassant && piecePosition.y == 4)))
 			{
 				return true;
 			}
+			// right
 			else if (piecePosition.x + 1 == mousePosition.x && ((pieces[piecePosition.y + 1][piecePosition.x + 1] - 1 >= 0 && 
 			pieces[piecePosition.y + 1][piecePosition.x + 1] - 1 <= 5) || (mousePosition.x == whiteEnPassant && piecePosition.y == 4)))
 			{
@@ -431,8 +529,10 @@ bool canPieceMoveHere(int piece, int pieces[8][8], Vector2i piecePosition, Vecto
 				return false;
 			}
 		}
+		// if the pawn wants to move two field forward (globaly backwards)
 		else if (piecePosition.y + 2 == mousePosition.y)
 		{
+			// check if the pawn is still on the "base line" and there is not piece in the way
 			if (piecePosition.x == mousePosition.x && piecePosition.y == 1 && pieces[piecePosition.y + 1][piecePosition.x] == 0 && 
 			pieces[piecePosition.y + 2][piecePosition.x] == 0)
 			{
@@ -455,6 +555,7 @@ bool canPieceMoveHere(int piece, int pieces[8][8], Vector2i piecePosition, Vecto
 		{
 			return false;
 		}
+		// and there is no piece in the way
 		else if (isPieceInWay(pieces, piecePosition, mousePosition))
 		{
 			return false;
@@ -482,6 +583,7 @@ bool canPieceMoveHere(int piece, int pieces[8][8], Vector2i piecePosition, Vecto
 		{
 			return false;
 		}
+		// and there is no piece in the way
 		else if (isPieceInWay(pieces, piecePosition, mousePosition))
 		{
 			return false;
@@ -495,6 +597,7 @@ bool canPieceMoveHere(int piece, int pieces[8][8], Vector2i piecePosition, Vecto
 		{
 			return false;
 		}
+		// and there is no piece in the way
 		else if (isPieceInWay(pieces, piecePosition, mousePosition))
 		{
 			return false;
@@ -502,8 +605,25 @@ bool canPieceMoveHere(int piece, int pieces[8][8], Vector2i piecePosition, Vecto
 	}
 	else if (piece == 5 || piece == 11) // black and white king
 	{
-		// make sure it only moves one step
-		if (abs(piecePosition.x - mousePosition.x) > 1 || abs(piecePosition.y - mousePosition.y) > 1)
+		// check all castle positions
+		if (piece == 5 && mousePosition == Vector2i{1, 7} && whiteCastlingLeft && pieces[7][1] == 0 && pieces[7][2] == 0 && pieces[7][3] == 0)
+		{
+			return true;
+		}
+		else if (piece == 5 && mousePosition == Vector2i{6, 7} && whiteCastlingRight && pieces[7][5] == 0 && pieces[7][6] == 0)
+		{
+			return true;
+		}
+		else if (piece == 11 && mousePosition == Vector2i{1, 0} && blackCastlingLeft && pieces[0][1] == 0 && pieces[0][2] == 0 && pieces[0][3] == 0)
+		{
+			return true;
+		}
+		else if (piece == 11 && mousePosition == Vector2i{6, 0} && blackCastlingRight && pieces[0][5] == 0 && pieces[0][6] == 0)
+		{
+			return true;
+		}
+		// else, make sure it only moves one field at a time
+		else if (abs(piecePosition.x - mousePosition.x) > 1 || abs(piecePosition.y - mousePosition.y) > 1)
 		{
 			return false;
 		}
@@ -515,7 +635,7 @@ bool canPieceMoveHere(int piece, int pieces[8][8], Vector2i piecePosition, Vecto
 
 // function that updates the list of valid positions a piece can move to
 void updateValidPiecePositions(int piece, int pieces[8][8], Vector2i piecePosition, bool (&validPiecePositions)[8][8], 
-int whiteEnPassant, int blackEnPassant)
+int whiteEnPassant, int blackEnPassant, int whiteCastlingLeft, int whiteCastlingRight, int blackCastlingLeft, int blackCastlingRight)
 {
 	// go through every field
 	for (int x = 0; x < 8; x++)
@@ -523,7 +643,8 @@ int whiteEnPassant, int blackEnPassant)
 		for (int y = 0; y < 8; y++)
 		{
 			// enter the x and y coordinate as the mouse position to check if the piece can move there
-			validPiecePositions[y][x] = canPieceMoveHere(piece, pieces, piecePosition, Vector2i(x, y), whiteEnPassant, blackEnPassant);
+			validPiecePositions[y][x] = canPieceMoveHere(piece, pieces, piecePosition, Vector2i(x, y), whiteEnPassant, blackEnPassant,
+			whiteCastlingLeft, whiteCastlingRight, blackCastlingLeft, blackCastlingRight);
 		}
 	}
 }
