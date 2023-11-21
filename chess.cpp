@@ -43,13 +43,18 @@ int main()
 	// saves which pieces on the board are created using pawn promotion
 	bool piecesByPawnPromotion[8][8] = {false};
 
+	bool whitePawnPromoted = false;
+	bool blackPawnPromoted = false;
+
 	// function to update the list of beaten pieces
 	void updateBeatenPieces(int pieces[8][8], bool piecesByPawnPromotion[8][8], int (&beatenPieces)[12]);
 	// function that updates the list of valid positions a piece can move to
 	void updateValidPiecePositions(int piece, int pieces[8][8], Vector2i piecePosition, bool (&validPiecePositions)[8][8], 
 	int whiteEnPassant, int blackEnPassant, int whiteCastlingLeft, int whiteCastlingRight, int blackCastlingLeft, int blackCastlingRight);
 
-	// function to draw all pieces
+	// function to draw a single piece
+	void drawPiece(RenderWindow &window, int piece, Vector2i position, Sprite pieceSprites[12], Sprite pieceShadowSprites[4], int pixelScale);
+	// function to draw all pieces (calls drawPiece())
 	void drawPieces(RenderWindow &window, int pixelScale, Vector2i boardPosition, int pieces[8][8], int beatenPieces[12], Sprite (&pieceSprites)[12], 
 	Sprite pieceShadowSprites[4], Vector2i mousePos, Vector2i pickedUpPiece, bool piecePickedUp);
 
@@ -124,8 +129,37 @@ int main()
 				case Event::MouseButtonPressed:
 					if (event.mouseButton.button == Mouse::Left) // specifies left mousebutton
 					{
+						if (whitePawnPromoted)
+						{
+							for (int x = 0; x < 4; x++)
+							{
+								if (Mouse::getPosition(window).y > boardPosition.y + 3 * pixelScale && Mouse::getPosition(window).y < boardPosition.y + 3 * pixelScale + 16 * pixelScale && 
+								Mouse::getPosition(window).x > boardPosition.x + 3 * pixelScale + (mousePos.x - 1.5 + x) * 16 * pixelScale &&
+								Mouse::getPosition(window).x < boardPosition.x + 3 * pixelScale + (mousePos.x - 0.5 + x) * 16 * pixelScale)
+								{
+									pieces[mousePos.y][mousePos.x] = x + 2;
+
+									whitePawnPromoted = false;
+								}
+							}
+						}
+						else if (blackPawnPromoted)
+						{
+							for (int x = 0; x < 4; x++)
+							{
+								if (Mouse::getPosition(window).y > boardPosition.y + 3 * pixelScale + 7 * 16 * pixelScale && Mouse::getPosition(window).y < boardPosition.y + 3 * pixelScale + 16 * pixelScale + 8 * 16 * pixelScale && 
+								Mouse::getPosition(window).x > boardPosition.x + 3 * pixelScale + (mousePos.x - 1.5 + x) * 16 * pixelScale &&
+								Mouse::getPosition(window).x < boardPosition.x + 3 * pixelScale + (mousePos.x - 0.5 + x) * 16 * pixelScale)
+								{
+									pieces[mousePos.y][mousePos.x] = x + 8;
+									pieces[pickedUpPiece.y][pickedUpPiece.x] = 0;
+
+									blackPawnPromoted = false;
+								}
+							}
+						}
 						// if mouse isn't on the board
-						if (Mouse::getPosition(window).x - boardPosition.x - 3 * pixelScale < 0 || Mouse::getPosition(window).y - boardPosition.y - 3 * 
+						else if (Mouse::getPosition(window).x - boardPosition.x - 3 * pixelScale < 0 || Mouse::getPosition(window).y - boardPosition.y - 3 * 
 						pixelScale < 0 || Mouse::getPosition(window).x - boardPosition.x - 3 * pixelScale > 16 * 8 * pixelScale || 
 						Mouse::getPosition(window).y - boardPosition.y - 3 * pixelScale > 16 * 8 * pixelScale)
 						{
@@ -242,18 +276,20 @@ int main()
 									// if a white pawn is promoted
 									else if (pieces[pickedUpPiece.y][pickedUpPiece.x] - 1 == 0 && mousePos.y == 0)
 									{
-										pieces[mousePos.y][mousePos.x] = 5;
+										pieces[mousePos.y][mousePos.x] = 1;
 										pieces[pickedUpPiece.y][pickedUpPiece.x] = 0;
 
 										piecesByPawnPromotion[mousePos.y][mousePos.x] = true;
+										whitePawnPromoted = true;
 									}
 									// if a black pawn is promoted
 									else if (pieces[pickedUpPiece.y][pickedUpPiece.x] - 1 == 6 && mousePos.y == 7)
 									{
-										pieces[mousePos.y][mousePos.x] = 11;
+										pieces[mousePos.y][mousePos.x] = 7;
 										pieces[pickedUpPiece.y][pickedUpPiece.x] = 0;
 
 										piecesByPawnPromotion[mousePos.y][mousePos.x] = true;
+										blackPawnPromoted = true;
 									}
 									// else if a piece is moved normally
 									else
@@ -317,8 +353,11 @@ int main()
 					// if right clicked, put the piece back
 					else if (event.mouseButton.button == Mouse::Right) // when right mouse button is pressed, put piece back
 					{
-						pickedUpPiece = {-1, -1};
-						piecePickedUp =  false;
+						if (piecePickedUp)
+						{
+							pickedUpPiece = {-1, -1};
+							piecePickedUp =  false;
+						}
 					}
 					break;
 					
@@ -360,6 +399,34 @@ int main()
 
 		// draw all pieces
 		drawPieces(window, pixelScale, boardPosition, pieces, beatenPieces, pieceSprites, pieceShadowsSprites, mousePos, pickedUpPiece, piecePickedUp);
+
+		if (whitePawnPromoted || blackPawnPromoted)
+		{
+			RectangleShape windowDarken;
+			windowDarken.setFillColor(Color(120, 120, 120));
+			windowDarken.setSize(Vector2f(windowSizeX, windowSizeY));
+
+			window.draw(windowDarken, BlendMultiply);
+
+			if (whitePawnPromoted)
+			{
+				for (int i = 0; i < 4; i++)
+				{
+					Vector2i position = {boardPosition.x + 7 * pixelScale + (mousePos.x - 1.5 + i) * 16 * pixelScale, boardPosition.y + 3 * pixelScale};
+
+					drawPiece(window, i + 1, position, pieceSprites, pieceShadowsSprites, pixelScale);
+				}
+			}
+			else if (blackPawnPromoted)
+			{
+				for (int i = 0; i < 4; i++)
+				{
+					Vector2i position = {boardPosition.x + 7 * pixelScale + (mousePos.x - 1.5 + i) * 16 * pixelScale, boardPosition.y + 3 * pixelScale + 7 * 16 * pixelScale};
+
+					drawPiece(window, i + 7, position, pieceSprites, pieceShadowsSprites, pixelScale);
+				}
+			}
+		}
 
 		// display everything you have drawn at once
 		window.display();
@@ -748,7 +815,7 @@ Sprite pieceShadowSprites[4], Vector2i mousePos, Vector2i pickedUpPiece, bool pi
 			// draw other pieces on the board
 			else
 			{
-				Vector2i position = {boardPosition.x + 7 * pixelScale + x * 16 * 4, boardPosition.x + 3 * pixelScale + y * 16 * 4};
+				Vector2i position = {boardPosition.x + 7 * pixelScale + x * 16 * pixelScale, boardPosition.y + 3 * pixelScale + y * 16 * pixelScale};
 				drawPiece(window, pieces[y][x] - 1, position, pieceSprites, pieceShadowSprites, pixelScale);
 			}
 		}
