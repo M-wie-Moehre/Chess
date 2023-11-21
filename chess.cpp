@@ -40,8 +40,11 @@ int main()
 	bool blackCastlingLeft = true;
 	bool blackCastlingRight = true;
 
+	// saves which pieces on the board are created using pawn promotion
+	bool piecesByPawnPromotion[8][8] = {false};
+
 	// function to update the list of beaten pieces
-	void updateBeatenPieces(int pieces[8][8], int (&beatenPieces)[12]);
+	void updateBeatenPieces(int pieces[8][8], bool piecesByPawnPromotion[8][8], int (&beatenPieces)[12]);
 	// function that updates the list of valid positions a piece can move to
 	void updateValidPiecePositions(int piece, int pieces[8][8], Vector2i piecePosition, bool (&validPiecePositions)[8][8], 
 	int whiteEnPassant, int blackEnPassant, int whiteCastlingLeft, int whiteCastlingRight, int blackCastlingLeft, int blackCastlingRight);
@@ -167,6 +170,7 @@ int main()
 									{
 										whiteEnPassant = pickedUpPiece.x;
 									}
+									// if a black pawn is moved two fields forward (globaly backwards), enable en passant for it
 									else if (pieces[pickedUpPiece.y][pickedUpPiece.x] - 1 == 6 && pickedUpPiece.y + 2 == mousePos.y)
 									{
 										blackEnPassant = pickedUpPiece.x;
@@ -179,6 +183,14 @@ int main()
 									else if (!whiteToMove)
 									{
 										blackEnPassant = -1;
+									}
+
+									// if a piece, that was created using pawn promotion is moved, the position in the variable "piecesByPawnPromotion"
+									// needs to be updated
+									if (piecesByPawnPromotion[pickedUpPiece.y][pickedUpPiece.x])
+									{
+										piecesByPawnPromotion[pickedUpPiece.y][pickedUpPiece.x] = false;
+										piecesByPawnPromotion[mousePos.y][mousePos.x] = true;
 									}
 
 									// if en passant is used from white pawn
@@ -211,7 +223,7 @@ int main()
 										pieces[7][5] = pieces[7][7];
 										pieces[7][7] = 0;
 									}
-									// if white black castles to the left
+									// if black king castles to the left
 									else if (pieces[pickedUpPiece.y][pickedUpPiece.x] - 1 == 11 && mousePos == Vector2i{1, 0} && blackCastlingLeft)
 									{
 										pieces[mousePos.y][mousePos.x] = pieces[pickedUpPiece.y][pickedUpPiece.x];
@@ -219,13 +231,29 @@ int main()
 										pieces[0][2] = pieces[0][0];
 										pieces[0][2] = 0;
 									}
-									// if white black castles to the right
+									// if black king castles to the right
 									else if (pieces[pickedUpPiece.y][pickedUpPiece.x] - 1 == 11 && mousePos == Vector2i{6, 0} && blackCastlingRight)
 									{
 										pieces[mousePos.y][mousePos.x] = pieces[pickedUpPiece.y][pickedUpPiece.x];
 										pieces[pickedUpPiece.y][pickedUpPiece.x] = 0;
 										pieces[0][5] = pieces[0][7];
 										pieces[0][7] = 0;
+									}
+									// if a white pawn is promoted
+									else if (pieces[pickedUpPiece.y][pickedUpPiece.x] - 1 == 0 && mousePos.y == 0)
+									{
+										pieces[mousePos.y][mousePos.x] = 5;
+										pieces[pickedUpPiece.y][pickedUpPiece.x] = 0;
+
+										piecesByPawnPromotion[mousePos.y][mousePos.x] = true;
+									}
+									// if a black pawn is promoted
+									else if (pieces[pickedUpPiece.y][pickedUpPiece.x] - 1 == 6 && mousePos.y == 7)
+									{
+										pieces[mousePos.y][mousePos.x] = 11;
+										pieces[pickedUpPiece.y][pickedUpPiece.x] = 0;
+
+										piecesByPawnPromotion[mousePos.y][mousePos.x] = true;
 									}
 									// else if a piece is moved normally
 									else
@@ -282,7 +310,7 @@ int main()
 								piecePickedUp = false;
 
 								// update the list with beaten pieces
-								updateBeatenPieces(pieces, beatenPieces);
+								updateBeatenPieces(pieces, piecesByPawnPromotion, beatenPieces);
 							}
 						}
 					}
@@ -775,7 +803,7 @@ Sprite pieceShadowSprites[4], Vector2i mousePos, Vector2i pickedUpPiece, bool pi
 }
 
 // function to update the list of beaten pieces
-void updateBeatenPieces(int pieces[8][8], int (&beatenPieces)[12])
+void updateBeatenPieces(int pieces[8][8], bool piecesByPawnPromotion[8][8], int (&beatenPieces)[12])
 {
 	// go through every possible piece
 	for (int i = 0; i < 12; i++)
@@ -798,13 +826,30 @@ void updateBeatenPieces(int pieces[8][8], int (&beatenPieces)[12])
 		}
 		
 		// loop through every field and if there is a piece, remove 1 from its count -> you will end up with the amount of pieces beaten for each type
+
+		// because, you pawn promotion will result in a different amount of start pieces, acount for that, by checking which pieces where created
+		// by pawn promotion and couting them as pawns
 		for (int y = 0; y < 8; y++)
 		{
 			for (int x = 0; x < 8; x++)
 			{
-				if (pieces[y][x] == i + 1)
+				if (pieces[y][x] - 1 == i)
 				{
-					beatenPieces[i] -= 1;
+					if (piecesByPawnPromotion[y][x])
+					{
+						if (i < 6)
+						{
+							beatenPieces[0] -= 1;
+						}
+						else
+						{
+							beatenPieces[6] -= 1;
+						}
+					}
+					else
+					{
+						beatenPieces[i] -= 1;
+					}
 				}
 			}
 		}
