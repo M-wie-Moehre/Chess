@@ -20,8 +20,13 @@ int main()
     {
         // input a message
         cin >> message;
+
+        // pack the message to ensure it gets send correctly
+        Packet packet;
+        packet << message;
+
         // send a message to the connected host
-        socket.send(message.c_str(), message.size() + 1);
+        socket.send(packet);
     }
     // press any key to proceed
     cin.ignore();

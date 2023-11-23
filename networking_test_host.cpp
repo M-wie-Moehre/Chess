@@ -18,19 +18,20 @@ int main()
     listener.accept(socket);
     std::cout << "New client connected: " << socket.getRemoteAddress() << endl;
 
-    bool proceed;
+    bool proceed = true;
     while (proceed)
     {
         // receive a message from the client
-        char buffer[1024];
-        size_t received = 0;
-        socket.receive(buffer, sizeof(buffer), received);
-        cout << "The client said: " << buffer << endl;
-        if (buffer == "q")
+        Packet packet;
+        socket.receive(packet);
+
+        // unpack the message
+        string message;
+        packet >> message;
+        cout << message << endl;
+        if (message == 'q')
         {
             proceed = false;
         }
     }
-    // press any key to proceed
-    cin.ignore();
 }
