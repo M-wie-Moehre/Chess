@@ -19,7 +19,7 @@ int main()
     while (message != "q")
     {
         // input a message
-        cin >> message;
+        getline(cin, message);
 
         // pack the message to ensure it gets send correctly
         Packet packet;
