@@ -49,8 +49,8 @@ int main()
 	// function to update the list of beaten pieces
 	void updateBeatenPieces(int pieces[8][8], bool piecesByPawnPromotion[8][8], int (&beatenPieces)[12]);
 	// function that updates the list of valid positions a piece can move to
-	void updateValidPiecePositions(int piece, int pieces[8][8], Vector2i piecePosition, bool (&validPiecePositions)[8][8], 
-	int whiteEnPassant, int blackEnPassant, int whiteCastlingLeft, int whiteCastlingRight, int blackCastlingLeft, int blackCastlingRight);
+	void updateValidPiecePositions(int pieces[8][8], Vector2i piecePosition, bool validPiecePositions[8][8], 
+	int whiteEnPassant, int blackEnPassant, bool whiteCastlingLeft, bool whiteCastlingRight, bool blackCastlingLeft, bool blackCastlingRight);
 
 	// function to draw a single piece
 	void drawPiece(RenderWindow &window, int piece, Vector2i position, Sprite pieceSprites[12], Sprite pieceShadowSprites[4], int pixelScale);
@@ -189,8 +189,8 @@ int main()
 									pickedUpPiece = mousePos;
 									piecePickedUp = true;
 									// update the positions, the current picked up piece can be put
-									updateValidPiecePositions(pieces[pickedUpPiece.y][pickedUpPiece.x] - 1, pieces, pickedUpPiece, validPiecePositions, 
-									whiteEnPassant, blackEnPassant, whiteCastlingLeft, whiteCastlingRight, blackCastlingLeft, blackCastlingRight);
+									updateValidPiecePositions(pieces, pickedUpPiece, validPiecePositions, whiteEnPassant, 
+									blackEnPassant, whiteCastlingLeft, whiteCastlingRight, blackCastlingLeft, blackCastlingRight);
 								}
 							}
 							// if you place the picked up piece on a valid field
@@ -526,21 +526,18 @@ bool isPieceInWay(int pieces[8][8], Vector2i piecePosition, Vector2i mousePositi
 }
 
 // function that returns if the given piece can jump to the given position
-bool canPieceMoveHere(int piece, int pieces[8][8], Vector2i piecePosition, Vector2i mousePosition, int whiteEnPassant, int blackEnPassant,
+bool canPieceMoveHere(int pieces[8][8], Vector2i piecePosition, Vector2i mousePosition, int whiteEnPassant, int blackEnPassant,
 int whiteCastlingLeft, int whiteCastlingRight, int blackCastlingLeft, int blackCastlingRight)
 {
+	// saves the index of the current piece
+	int piece = pieces[piecePosition.y][piecePosition.x] - 1;
+
 	/*
 		general rules
 	*/
-	// if the piece is placed back at the same spot
-	if (piecePosition == mousePosition)
-	{
-		return true;
-	}
-
-	// if the piece is placed on the same color
+	// pieces can't be placed on the same color
 	if (((piece >= 0 && piece <= 5) && (pieces[mousePosition.y][mousePosition.x] - 1 >= 0 && pieces[mousePosition.y][mousePosition.x] - 1 <= 5)) ||
-	((piece >= 6 && piece <= 12) && (pieces[mousePosition.y][mousePosition.x] - 1 >= 6 && pieces[mousePosition.y][mousePosition.x] - 1 <= 12)))
+	((piece >= 6 && piece <= 11) && (pieces[mousePosition.y][mousePosition.x] - 1 >= 6 && pieces[mousePosition.y][mousePosition.x] - 1 <= 11)))
 	{
 		return false;
 	}
@@ -549,7 +546,11 @@ int whiteCastlingLeft, int whiteCastlingRight, int blackCastlingLeft, int blackC
 		piece rules
 	*/
 	// go through every piece type
-	if (piece == 0) // white pawn
+	if (piece == -1) // if the field is empty, it can't move anywhere
+	{
+		return false;
+	}
+	else if (piece == 0) // white pawn
 	{
 		// if the piece moves 1 field forward
 		if (piecePosition.y - 1 == mousePosition.y)
@@ -728,18 +729,86 @@ int whiteCastlingLeft, int whiteCastlingRight, int blackCastlingLeft, int blackC
 	return true;
 }
 
+// function that returns if the king is in check
+bool isKingInCheck(int pieces[8][8], Vector2i piecePosition, int whiteEnPassant, int blackEnPassant, 
+bool whiteCastlingLeft, bool whiteCastlingRight, bool blackCastlingLeft, bool blackCastlingRight)
+{
+	Vector2i kingPosition;
+
+	for (int x = 0; x < 8; x++)
+	{
+		for (int y = 0; y < 8; y++)
+		{
+			if ((pieces[piecePosition.y][piecePosition.x] - 1 >= 0 && pieces[piecePosition.y][piecePosition.x] - 1 <= 5 &&
+			pieces[y][x] - 1 == 5) || 
+			(pieces[piecePosition.y][piecePosition.x] - 1 >= 6 && pieces[piecePosition.y][piecePosition.x] - 1 <= 11 &&
+			pieces[y][x] - 1 == 11))
+			{
+				kingPosition = {x, y};
+			}
+		}
+	}
+
+	for (int x = 0; x < 8; x++)
+	{
+		for (int y = 0; y < 8; y++)
+		{
+			if ((pieces[piecePosition.y][piecePosition.x] - 1 >= 0 && pieces[piecePosition.y][piecePosition.x] - 1 <= 5 && 
+			pieces[y][x] - 1 >= 6 && pieces[y][x] - 1 <= 11) ||
+			(pieces[piecePosition.y][piecePosition.x] - 1 >= 6 && pieces[piecePosition.y][piecePosition.x] - 1 <= 11 && 
+			pieces[y][x] - 1 >= 0 && pieces[y][x] - 1 <= 5))
+			{
+				if (canPieceMoveHere(pieces, Vector2i(x, y), kingPosition, whiteEnPassant, blackEnPassant,
+				whiteCastlingLeft, whiteCastlingRight, blackCastlingLeft, blackCastlingRight))
+				{
+					return true;
+				}
+			}
+		}
+	}
+	return false;
+}
+
 // function that updates the list of valid positions a piece can move to
-void updateValidPiecePositions(int piece, int pieces[8][8], Vector2i piecePosition, bool (&validPiecePositions)[8][8], 
-int whiteEnPassant, int blackEnPassant, int whiteCastlingLeft, int whiteCastlingRight, int blackCastlingLeft, int blackCastlingRight)
+void updateValidPiecePositions(int pieces[8][8], Vector2i piecePosition, bool validPiecePositions[8][8], 
+int whiteEnPassant, int blackEnPassant, bool whiteCastlingLeft, bool whiteCastlingRight, bool blackCastlingLeft, bool blackCastlingRight)
 {
 	// go through every field
 	for (int x = 0; x < 8; x++)
 	{
 		for (int y = 0; y < 8; y++)
 		{
-			// enter the x and y coordinate as the mouse position to check if the piece can move there
-			validPiecePositions[y][x] = canPieceMoveHere(piece, pieces, piecePosition, Vector2i(x, y), whiteEnPassant, blackEnPassant,
-			whiteCastlingLeft, whiteCastlingRight, blackCastlingLeft, blackCastlingRight);
+			if (piecePosition.x == x && piecePosition.y == y)
+			{
+				validPiecePositions[y][x] = true;
+			}
+			else
+			{
+				if (canPieceMoveHere(pieces, piecePosition, Vector2i(x, y), whiteEnPassant, blackEnPassant,
+				whiteCastlingLeft, whiteCastlingRight, blackCastlingLeft, blackCastlingRight))
+				{
+					int piece = pieces[y][x];
+					pieces[y][x] = pieces[piecePosition.y][piecePosition.x];
+					pieces[piecePosition.y][piecePosition.x] = 0;
+
+					if (isKingInCheck(pieces, Vector2i(x, y), whiteEnPassant, blackEnPassant,
+					whiteCastlingLeft, whiteCastlingRight, blackCastlingLeft, blackCastlingRight))
+					{
+						validPiecePositions[y][x] = false;
+					}
+					else
+					{
+						validPiecePositions[y][x] = true;
+					}
+
+					pieces[piecePosition.y][piecePosition.x] = pieces[y][x];
+					pieces[y][x] = piece;
+				}
+				else
+				{
+					validPiecePositions[y][x] = false;
+				}
+			}
 		}
 	}
 }
