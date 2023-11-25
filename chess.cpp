@@ -51,6 +51,12 @@ int main()
 	// function that updates the list of valid positions a piece can move to
 	void updateValidPiecePositions(int pieces[8][8], Vector2i piecePosition, bool validPiecePositions[8][8], 
 	int whiteEnPassant, int blackEnPassant, bool whiteCastlingLeft, bool whiteCastlingRight, bool blackCastlingLeft, bool blackCastlingRight);
+	// function that returns if the current player is checkmate
+	bool isCheckmate(int pieces[8][8], bool whiteToMove, int whiteEnPassant, int blackEnPassant, bool whiteCastlingLeft, bool whiteCastlingRight, bool blackCastlingLeft, 
+	bool blackCastlingRight);
+	// function that returns if the current player can't move the king anywhere but in check -> stalemate
+	bool isStalemate(int pieces[8][8], bool whiteToMove, int whiteEnPassant, int blackEnPassant, bool whiteCastlingLeft, bool whiteCastlingRight, bool blackCastlingLeft, 
+	bool blackCastlingRight);
 
 	// function to draw a single piece
 	void drawPiece(RenderWindow &window, int piece, Vector2i position, Sprite pieceSprites[12], Sprite pieceShadowSprites[4], int pixelScale);
@@ -263,7 +269,7 @@ int main()
 										pieces[mousePos.y][mousePos.x] = pieces[pickedUpPiece.y][pickedUpPiece.x];
 										pieces[pickedUpPiece.y][pickedUpPiece.x] = 0;
 										pieces[0][2] = pieces[0][0];
-										pieces[0][2] = 0;
+										pieces[0][0] = 0;
 									}
 									// if black king castles to the right
 									else if (pieces[pickedUpPiece.y][pickedUpPiece.x] - 1 == 11 && mousePos == Vector2i{6, 0} && blackCastlingRight)
@@ -301,52 +307,51 @@ int main()
 
 									// check if a rook or the king is moved to determine if the king can still castle
 									// if one of the white rooks moves, only disable castling with this rook
-									if (pieces[pickedUpPiece.y][pickedUpPiece.x] - 1 == 1)
+									if (pieces[0][0] - 1 != 7)
 									{
-										if (pickedUpPiece.x == 0)
-										{
-											whiteCastlingLeft = false;
-										}
-										else
-										{
-											whiteCastlingRight = false;
-										}
+										blackCastlingLeft = false;
 									}
-									// if one of the black rooks moves, only disable castling with this rook
-									else if (pieces[pickedUpPiece.y][pickedUpPiece.x] - 1 == 7)
+									else if (pieces[0][7] - 1 != 7)
 									{
-										if (pickedUpPiece.x == 0)
-										{
-											blackCastlingLeft = false;
-										}
-										else
-										{
-											blackCastlingRight = false;
-										}
+										blackCastlingRight = false;
 									}
-									// if white king moves, disable castling for white completly
-									else if (pieces[pickedUpPiece.y][pickedUpPiece.x] - 1 == 5)
+									else if (pieces[7][0] - 1 != 1)
 									{
 										whiteCastlingLeft = false;
+									}
+									else if (pieces[7][7] - 1 != 1)
+									{
 										whiteCastlingRight = false;
 									}
-									// if black king moves, disable castling for white completly
-									else if (pieces[pickedUpPiece.y][pickedUpPiece.x] - 1 == 11)
+
+									// if white king moves, disable castling for white completly
+									else if (pieces[0][4] - 1 != 11)
 									{
 										blackCastlingLeft = false;
 										blackCastlingRight = false;
 									}
+									// if black king moves, disable castling for white completly
+									else if (pieces[7][4] - 1 != 5)
+									{
+										whiteCastlingLeft = false;
+										whiteCastlingRight = false;
+									}
 
 									// change player turn
 									whiteToMove = !whiteToMove;
+									
+									// update the list of beaten pieces
+									updateBeatenPieces(pieces, piecesByPawnPromotion, beatenPieces);
+
+									cout << isCheckmate(pieces, whiteToMove, whiteEnPassant, blackEnPassant, whiteCastlingLeft, whiteCastlingRight,
+									blackCastlingLeft, blackCastlingRight) << endl;
+									cout << isStalemate(pieces, whiteToMove, whiteEnPassant, blackEnPassant, whiteCastlingLeft, whiteCastlingRight,
+									blackCastlingLeft, blackCastlingRight) << endl;
 								}
 
 								// put the piece down
 								pickedUpPiece = {-1, -1};
 								piecePickedUp = false;
-
-								// update the list with beaten pieces
-								updateBeatenPieces(pieces, piecesByPawnPromotion, beatenPieces);
 							}
 						}
 					}
@@ -730,7 +735,7 @@ int whiteCastlingLeft, int whiteCastlingRight, int blackCastlingLeft, int blackC
 }
 
 // function that returns if the king is in check
-bool isKingInCheck(int pieces[8][8], Vector2i piecePosition, int whiteEnPassant, int blackEnPassant, 
+bool isKingInCheck(int pieces[8][8], bool whiteToMove, int whiteEnPassant, int blackEnPassant, 
 bool whiteCastlingLeft, bool whiteCastlingRight, bool blackCastlingLeft, bool blackCastlingRight)
 {
 	Vector2i kingPosition;
@@ -739,10 +744,7 @@ bool whiteCastlingLeft, bool whiteCastlingRight, bool blackCastlingLeft, bool bl
 	{
 		for (int y = 0; y < 8; y++)
 		{
-			if ((pieces[piecePosition.y][piecePosition.x] - 1 >= 0 && pieces[piecePosition.y][piecePosition.x] - 1 <= 5 &&
-			pieces[y][x] - 1 == 5) || 
-			(pieces[piecePosition.y][piecePosition.x] - 1 >= 6 && pieces[piecePosition.y][piecePosition.x] - 1 <= 11 &&
-			pieces[y][x] - 1 == 11))
+			if ((whiteToMove && pieces[y][x] - 1 == 5) || (!whiteToMove && pieces[y][x] - 1 == 11))
 			{
 				kingPosition = {x, y};
 			}
@@ -753,10 +755,8 @@ bool whiteCastlingLeft, bool whiteCastlingRight, bool blackCastlingLeft, bool bl
 	{
 		for (int y = 0; y < 8; y++)
 		{
-			if ((pieces[piecePosition.y][piecePosition.x] - 1 >= 0 && pieces[piecePosition.y][piecePosition.x] - 1 <= 5 && 
-			pieces[y][x] - 1 >= 6 && pieces[y][x] - 1 <= 11) ||
-			(pieces[piecePosition.y][piecePosition.x] - 1 >= 6 && pieces[piecePosition.y][piecePosition.x] - 1 <= 11 && 
-			pieces[y][x] - 1 >= 0 && pieces[y][x] - 1 <= 5))
+			if ((whiteToMove && pieces[y][x] - 1 >= 6 && pieces[y][x] - 1 <= 11) ||
+			(!whiteToMove && pieces[y][x] - 1 >= 0 && pieces[y][x] - 1 <= 5))
 			{
 				if (canPieceMoveHere(pieces, Vector2i(x, y), kingPosition, whiteEnPassant, blackEnPassant,
 				whiteCastlingLeft, whiteCastlingRight, blackCastlingLeft, blackCastlingRight))
@@ -791,7 +791,8 @@ int whiteEnPassant, int blackEnPassant, bool whiteCastlingLeft, bool whiteCastli
 					pieces[y][x] = pieces[piecePosition.y][piecePosition.x];
 					pieces[piecePosition.y][piecePosition.x] = 0;
 
-					if (isKingInCheck(pieces, Vector2i(x, y), whiteEnPassant, blackEnPassant,
+					bool whiteToMove = pieces[y][x] - 1 >= 0 && pieces[y][x] - 1 <= 5;
+					if (isKingInCheck(pieces, whiteToMove, whiteEnPassant, blackEnPassant,
 					whiteCastlingLeft, whiteCastlingRight, blackCastlingLeft, blackCastlingRight))
 					{
 						validPiecePositions[y][x] = false;
@@ -811,6 +812,100 @@ int whiteEnPassant, int blackEnPassant, bool whiteCastlingLeft, bool whiteCastli
 			}
 		}
 	}
+}
+
+// function that return if the current player is checkmate
+bool isCheckmate(int pieces[8][8], bool whiteToMove, int whiteEnPassant, int blackEnPassant, bool whiteCastlingLeft, bool whiteCastlingRight, bool blackCastlingLeft, 
+bool blackCastlingRight)
+{
+	if (isKingInCheck(pieces, whiteToMove, whiteEnPassant, blackEnPassant,
+	whiteCastlingLeft, whiteCastlingRight, blackCastlingLeft, blackCastlingRight))
+	{
+		// go trough every piece in the current color
+		for (int x1 = 0; x1 < 8; x1++)
+		{
+			for (int y1 = 0; y1 < 8; y1++)
+			{
+				if ((whiteToMove && pieces[y1][x1] - 1 >= 0 && pieces[y1][x1] - 1 <= 5) || (!whiteToMove && pieces[y1][x1] - 1 >= 6 && pieces[y1][x1] - 1 <= 11))
+				{
+					// go trough every field, the current piece could move and check if it could save the king
+					for (int x2 = 0; x2 < 8; x2++)
+					{
+						for (int y2 = 0; y2 < 8; y2++)
+						{
+							if (canPieceMoveHere(pieces, Vector2i(x1, y1), Vector2i(x2, y2), whiteEnPassant, blackEnPassant,
+							whiteCastlingLeft, whiteCastlingRight, blackCastlingLeft, blackCastlingRight))
+							{
+								int piece = pieces[y2][x2];
+								pieces[y2][x2] = pieces[y1][x1];
+								pieces[y1][x1] = 0;
+
+								if (!isKingInCheck(pieces, whiteToMove, whiteEnPassant, blackEnPassant, whiteCastlingLeft, whiteCastlingRight,
+								blackCastlingLeft, blackCastlingRight))
+								{
+									pieces[y1][x1] = pieces[y2][x2];
+									pieces[y2][x2] = piece;
+									return false;
+								}
+
+								pieces[y1][x1] = pieces[y2][x2];
+								pieces[y2][x2] = piece;
+							}
+						}
+					}
+				}
+			}
+		}
+		return true;
+	}
+	return false;
+}
+
+// function that returns if the current player can't move the king anywhere but in check -> stalemate
+bool isStalemate(int pieces[8][8], bool whiteToMove, int whiteEnPassant, int blackEnPassant, bool whiteCastlingLeft, bool whiteCastlingRight, bool blackCastlingLeft, 
+bool blackCastlingRight)
+{
+	if (!isKingInCheck(pieces, whiteToMove, whiteEnPassant, blackEnPassant,
+	whiteCastlingLeft, whiteCastlingRight, blackCastlingLeft, blackCastlingRight))
+	{
+		// go trough every piece in the current color
+		for (int x1 = 0; x1 < 8; x1++)
+		{
+			for (int y1 = 0; y1 < 8; y1++)
+			{
+				if ((whiteToMove && pieces[y1][x1] - 1 >= 0 && pieces[y1][x1] - 1 <= 5) || (!whiteToMove && pieces[y1][x1] - 1 >= 6 && pieces[y1][x1] - 1 <= 11))
+				{
+					// go trough every field, the current piece could move and check if it could save the king
+					for (int x2 = 0; x2 < 8; x2++)
+					{
+						for (int y2 = 0; y2 < 8; y2++)
+						{
+							if (canPieceMoveHere(pieces, Vector2i(x1, y1), Vector2i(x2, y2), whiteEnPassant, blackEnPassant,
+							whiteCastlingLeft, whiteCastlingRight, blackCastlingLeft, blackCastlingRight))
+							{
+								int piece = pieces[y2][x2];
+								pieces[y2][x2] = pieces[y1][x1];
+								pieces[y1][x1] = 0;
+
+								if (!isKingInCheck(pieces, whiteToMove, whiteEnPassant, blackEnPassant, whiteCastlingLeft, whiteCastlingRight,
+								blackCastlingLeft, blackCastlingRight))
+								{
+									pieces[y1][x1] = pieces[y2][x2];
+									pieces[y2][x2] = piece;
+									return false;
+								}
+
+								pieces[y1][x1] = pieces[y2][x2];
+								pieces[y2][x2] = piece;
+							}
+						}
+					}
+				}
+			}
+		}
+		return true;
+	}
+	return false;
 }
 
 // function to draw one piece at a position
