@@ -19,19 +19,30 @@ int main()
     std::cout << "New client connected: " << socket.getRemoteAddress() << endl;
 
     bool proceed = true;
-    while (proceed)
+    string messageSend = "";
+    while (proceed || messageSend != "q")
     {
         // receive a message from the client
-        Packet packet;
-        socket.receive(packet);
+        Packet packetReceive;
+        socket.receive(packetReceive);
 
         // unpack the message
-        string message;
-        packet >> message;
-        cout << message << endl;
-        if (message == 'q')
+        string messageReceive;
+        packetReceive >> messageReceive;
+        cout << messageReceive << endl;
+        if (messageReceive == 'q')
         {
             proceed = false;
         }
+
+        // input a message
+        getline(cin, messageSend);
+
+        // pack the message to ensure it gets send correctly
+        Packet packetSend;
+        packetSend << messageSend;
+
+        // send a message to the connected host
+        socket.send(packetSend);
     }
 }

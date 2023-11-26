@@ -12,22 +12,34 @@ int main()
 {
     // Create a socket and connect it to 192.168.178.62 on port 55001
     TcpSocket socket;
-    socket.connect("192.168.178.62", 55001);
-    std::cout << "Connected to host: " << "192.168.178.62" << endl;
+    socket.connect("192.168.178.22", 55001);
+    std::cout << "Connected to host: " << "192.168.178.22" << endl;
 
-    string message = "";
-    while (message != "q")
+    bool proceed = true;
+    string messageSend = "";
+    while (proceed || messageSend != "q")
     {
         // input a message
-        getline(cin, message);
+        getline(cin, messageSend);
 
         // pack the message to ensure it gets send correctly
-        Packet packet;
-        packet << message;
+        Packet packetSend;
+        packetSend << messageSend;
 
         // send a message to the connected host
-        socket.send(packet);
+        socket.send(packetSend);
+
+        // receive a message from the client
+        Packet packetReceive;
+        socket.receive(packetReceive);
+
+        // unpack the message
+        string messageReceive;
+        packetReceive >> messageReceive;
+        cout << messageReceive << endl;
+        if (messageReceive == 'q')
+        {
+            proceed = false;
+        }
     }
-    // press any key to proceed
-    cin.ignore();
 }
