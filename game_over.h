@@ -25,10 +25,10 @@ Text pressToContinueText;
 
 // game over functions
 
-// drawing functions
+// function to load all textures required for the game_over screen
 void loadGameOverTextures()
 {
-    // load the texts
+    // load the text textures
     if (!whiteWinsTextTexture.loadFromFile("textures\\win_white.png"))
     {
         cout << "Couldn't load texture \"textures\\win_white.png\". Exiting.." << endl;
@@ -60,8 +60,12 @@ void loadGameOverTextures()
     drawTextSprite.setPosition(windowSizeX / 2 - (131 * pixelScale) / 2, windowSizeY / 2 - 36 * pixelScale);
 }
 
-void drawGameOver(RenderWindow &window, int gameState)
+// drawing functions
+
+// function to draw the game_over screen
+void drawGameOver(RenderWindow &window)
 {
+    // draw the game_over message for the respective gameState (1 = white won; 2 = black won; 3 = draw)
     if (gameState == 1)
     {
         window.draw(whiteWinsTextSprite);
@@ -75,6 +79,7 @@ void drawGameOver(RenderWindow &window, int gameState)
         window.draw(drawTextSprite);
     }
 
+    // draw the text
     pressToContinueText.setFont(textFont);
     pressToContinueText.setString("Press to continue ...");
     pressToContinueText.setFillColor(Color(140, 140, 140));

@@ -44,6 +44,7 @@ bool blackCastlingRight = true;
 // saves which pieces on the board are created using pawn promotion
 bool piecesByPawnPromotion[8][8] = {false};
 
+// saves if the pawns were promoted and you will have the option to select which piece you want
 bool whitePawnPromoted = false;
 bool blackPawnPromoted = false;
 
@@ -101,6 +102,7 @@ bool isPieceInWay(Vector2i piecePosition, Vector2i mousePosition)
 		// if the piece is moved to the left
 		else
 		{
+			// go through every field in between and check if there is a piece
 			for (int x = piecePosition.x - 1; x > mousePosition.x; x--)
 			{
 				if (pieces[piecePosition.y][x] != 0)
@@ -117,6 +119,7 @@ bool isPieceInWay(Vector2i piecePosition, Vector2i mousePosition)
 		// if the piece is moved down
 		if (piecePosition.y < mousePosition.y)
 		{
+			// go through every field in between and check if there is a piece
 			for (int y = piecePosition.y + 1; y < mousePosition.y; y++)
 			{
 				if (pieces[y][piecePosition.x] != 0)
@@ -129,6 +132,7 @@ bool isPieceInWay(Vector2i piecePosition, Vector2i mousePosition)
 		// if the piece is moved up
 		else
 		{
+			// go through every field in between and check if there is a piece
 			for (int y = piecePosition.y - 1; y > mousePosition.y; y--)
 			{
 				if (pieces[y][piecePosition.x] != 0)
@@ -152,7 +156,7 @@ bool isPieceInWay(Vector2i piecePosition, Vector2i mousePosition)
 		// count up the steps
 		for (int i = 1; i < stepsToMove; i++)
 		{
-			// add the step to the respectiv direction at both axis
+			// add the step to the respectiv direction to both axis
 			if (pieces[piecePosition.y + i * directionToMoveY][piecePosition.x + i * directionToMoveX] != 0)
 			{
 				return true;
@@ -163,7 +167,7 @@ bool isPieceInWay(Vector2i piecePosition, Vector2i mousePosition)
 	return true;
 }
 
-// function that returns if the given piece can jump to the given position (from piece position to mouse position)
+// function that returns if the given piece can jump to the given position (from piece position to mouse position), without checking if the king would be in check
 bool canPieceMoveHere(Vector2i piecePosition, Vector2i mousePosition)
 {
 	// saves the index of the current piece
@@ -367,8 +371,7 @@ bool canPieceMoveHere(Vector2i piecePosition, Vector2i mousePosition)
 }
 
 // function that returns if the king is in check
-bool isKingInCheck(int pieces[8][8], bool whiteToMove, int whiteEnPassant, int blackEnPassant, 
-bool whiteCastlingLeft, bool whiteCastlingRight, bool blackCastlingLeft, bool blackCastlingRight)
+bool isKingInCheck()
 {
 	Vector2i kingPosition;
 
@@ -400,46 +403,135 @@ bool whiteCastlingLeft, bool whiteCastlingRight, bool blackCastlingLeft, bool bl
 	return false;
 }
 
+// function that returns if a piece can actually jump to the given position, with looking at the king and whether he would be in check or not
+bool canPieceActuallyMoveHere(Vector2i piecePosition, Vector2i mousePosition)
+{
+	// if the piece is put back at the same spot, return true, because qou should be able to put a piece back
+	if (piecePosition.x == mousePosition.x && piecePosition.y == mousePosition.y)
+	{
+		return true;
+	}
+	// if the piece is moved somewhere else
+	else
+	{
+		// first check if the piece can even move to the position
+		if (canPieceMoveHere(piecePosition, mousePosition))
+		{
+			// if the piece is a king and you want to castle to the left, check if the king is or would be in check in the process, because castling out of check is illegal
+			if ((pieces[piecePosition.y][piecePosition.x] - 1 == 5 && mousePosition == Vector2i{1, 7} && whiteCastlingLeft) ||
+			(pieces[piecePosition.y][piecePosition.x] - 1 == 11 && mousePosition == Vector2i{1, 0} && blackCastlingLeft))
+			{
+				// check if the king is in check
+				if (isKingInCheck())
+				{
+					return false;
+				}
+
+				// check every position the king would move through when castling
+				for (int x = 3; x >= 1; x--)
+				{
+					// move the king to the position
+					pieces[piecePosition.y][x] = pieces[piecePosition.y][piecePosition.x];
+					pieces[piecePosition.y][piecePosition.x] = 0;
+
+					// check if he would be in check
+					if (isKingInCheck())
+					{
+						// if yes, move him back and return false
+						pieces[piecePosition.y][piecePosition.x] = pieces[piecePosition.y][x];
+						pieces[piecePosition.y][x] = 0;
+
+						return false;
+					}
+
+					// if not, move him back anyways, because the moving takes place in the updateGameFunction, this function is only there, to check if it would be possible
+					pieces[piecePosition.y][piecePosition.x] = pieces[piecePosition.y][x];
+					pieces[piecePosition.y][x] = 0;
+				}
+
+				return true;
+			}
+			// else if the piece is a king and you want to castle to the right, check if the king is or would be in check in the process, because castling out of check is illegal
+			else if ((pieces[piecePosition.y][piecePosition.x] - 1 == 5 && mousePosition == Vector2i{6, 7} && whiteCastlingRight) ||
+			(pieces[piecePosition.y][piecePosition.x] - 1 == 11 && mousePosition == Vector2i{6, 0} && blackCastlingRight))
+			{
+				// check if the king is in check
+				if (isKingInCheck())
+				{
+					return false;
+				}
+
+				// check every position the king would move through when castling
+				for (int x = 5; x <= 6; x++)
+				{
+					// move the king to the position
+					pieces[piecePosition.y][x] = pieces[piecePosition.y][piecePosition.x];
+					pieces[piecePosition.y][piecePosition.x] = 0;
+
+					// check if he would be in check
+					if (isKingInCheck())
+					{
+						// if yes, move him back and return false
+						pieces[piecePosition.y][piecePosition.x] = pieces[piecePosition.y][x];
+						pieces[piecePosition.y][x] = 0;
+
+						return false;
+					}
+
+					// if not, move him back anyways, because the moving takes place in the updateGameFunction, this function is only there, to check if it would be possible
+					pieces[piecePosition.y][piecePosition.x] = pieces[piecePosition.y][x];
+					pieces[piecePosition.y][x] = 0;
+				}
+
+				return true;
+			}
+			// else if every other piece (including the king, just not castling) is moved, check if the own king would be in check
+			else
+			{
+				// move the piece to the position
+				int piece = pieces[mousePosition.y][mousePosition.x];
+				pieces[mousePosition.y][mousePosition.x] = pieces[piecePosition.y][piecePosition.x];
+				pieces[piecePosition.y][piecePosition.x] = 0;
+
+				// check if the king would be in check
+				if (isKingInCheck())
+				{
+					// if yes, move the piece back and return false
+					pieces[piecePosition.y][piecePosition.x] = pieces[mousePosition.y][mousePosition.x];
+					pieces[mousePosition.y][mousePosition.x] = piece;
+
+					return false;
+				}
+				else
+				{
+					// if not, move the piece back anyways, because the moving takes place in the updateGameFunction, this function is only there, 
+					// to check if it would be possible
+					pieces[piecePosition.y][piecePosition.x] = pieces[mousePosition.y][mousePosition.x];
+					pieces[mousePosition.y][mousePosition.x] = piece;
+					
+					return true;
+				}
+			}
+		}
+		// if the piece can't move to the position in the first place
+		else
+		{
+			return false;
+		}
+	}
+	return false;
+}
+
 // function that updates the list of valid positions a piece can move to
-void updateValidPiecePositions(int pieces[8][8], Vector2i piecePosition, bool validPiecePositions[8][8], 
-int whiteEnPassant, int blackEnPassant, bool whiteCastlingLeft, bool whiteCastlingRight, bool blackCastlingLeft, bool blackCastlingRight)
+void updateValidPiecePositions(Vector2i piecePosition)
 {
 	// go through every field
 	for (int x = 0; x < 8; x++)
 	{
 		for (int y = 0; y < 8; y++)
 		{
-			if (piecePosition.x == x && piecePosition.y == y)
-			{
-				validPiecePositions[y][x] = true;
-			}
-			else
-			{
-				if (canPieceMoveHere(piecePosition, Vector2i(x, y)))
-				{
-					int piece = pieces[y][x];
-					pieces[y][x] = pieces[piecePosition.y][piecePosition.x];
-					pieces[piecePosition.y][piecePosition.x] = 0;
-
-					bool whiteToMove = pieces[y][x] - 1 >= 0 && pieces[y][x] - 1 <= 5;
-					if (isKingInCheck(pieces, whiteToMove, whiteEnPassant, blackEnPassant,
-					whiteCastlingLeft, whiteCastlingRight, blackCastlingLeft, blackCastlingRight))
-					{
-						validPiecePositions[y][x] = false;
-					}
-					else
-					{
-						validPiecePositions[y][x] = true;
-					}
-
-					pieces[piecePosition.y][piecePosition.x] = pieces[y][x];
-					pieces[y][x] = piece;
-				}
-				else
-				{
-					validPiecePositions[y][x] = false;
-				}
-			}
+			// and check if the piece can move there
+			validPiecePositions[y][x] = canPieceActuallyMoveHere(piecePosition, Vector2i(x, y));
 		}
 	}
 }
@@ -447,43 +539,41 @@ int whiteEnPassant, int blackEnPassant, bool whiteCastlingLeft, bool whiteCastli
 // function that return if the current player is checkmate
 bool isCheckmate()
 {
-	if (isKingInCheck(pieces, whiteToMove, whiteEnPassant, blackEnPassant,
-	whiteCastlingLeft, whiteCastlingRight, blackCastlingLeft, blackCastlingRight))
+	// check if the king is in check, if he wouldn't be in check, it would be checkmate (but maybe stalemate)
+	if (isKingInCheck())
 	{
-		// go trough every piece in the current color
+		// go trough every field (to check for own pieces)
 		for (int x1 = 0; x1 < 8; x1++)
 		{
 			for (int y1 = 0; y1 < 8; y1++)
 			{
+				// if the piece has the own color, check every position it could jump to and if this would save the king
 				if ((whiteToMove && pieces[y1][x1] - 1 >= 0 && pieces[y1][x1] - 1 <= 5) || (!whiteToMove && pieces[y1][x1] - 1 >= 6 && pieces[y1][x1] - 1 <= 11))
 				{
-					// go trough every field, the current piece could move and check if it could save the king
+					// go again through every field (to check where the current piece can jump to)
 					for (int x2 = 0; x2 < 8; x2++)
 					{
 						for (int y2 = 0; y2 < 8; y2++)
 						{
-							if (canPieceMoveHere(Vector2i(x1, y1), Vector2i(x2, y2)))
+							// if the piece isn't moved at all, we don't have to check, because it doesn't change anything
+							if (x1 == x2 && y1 == y2)
 							{
-								int piece = pieces[y2][x2];
-								pieces[y2][x2] = pieces[y1][x1];
-								pieces[y1][x1] = 0;
-
-								if (!isKingInCheck(pieces, whiteToMove, whiteEnPassant, blackEnPassant, whiteCastlingLeft, whiteCastlingRight,
-								blackCastlingLeft, blackCastlingRight))
-								{
-									pieces[y1][x1] = pieces[y2][x2];
-									pieces[y2][x2] = piece;
-									return false;
-								}
-
-								pieces[y1][x1] = pieces[y2][x2];
-								pieces[y2][x2] = piece;
+								continue;
+							}
+							
+							// check if the piece has valid fields to move to (since canPieceActuallyMoveHere is also cheking if the king would be in check, we can use it here
+							// to check if the player still has an option to save the king)
+							if (canPieceActuallyMoveHere(Vector2i(x1, y1), Vector2i(x2, y2)))
+							{
+								// if one piece is found, we can return false, since the player still has the chance to save the king
+								return false;
 							}
 						}
 					}
 				}
 			}
 		}
+		// if no piece can save the king, the player is checkmate
 		return true;
 	}
 	return false;
@@ -492,43 +582,41 @@ bool isCheckmate()
 // function that returns if the current player can't move the king anywhere but in check -> stalemate
 bool isStalemate()
 {
-	if (!isKingInCheck(pieces, whiteToMove, whiteEnPassant, blackEnPassant,
-	whiteCastlingLeft, whiteCastlingRight, blackCastlingLeft, blackCastlingRight))
+	// check if the king isn't in check, because this is necessary for stalemate
+	if (!isKingInCheck())
 	{
-		// go trough every piece in the current color
+		// go through every field (to check for own pieces)
 		for (int x1 = 0; x1 < 8; x1++)
 		{
 			for (int y1 = 0; y1 < 8; y1++)
 			{
+				// if the piece has the own color, check if it has any position to jump to, without putting the king in check
 				if ((whiteToMove && pieces[y1][x1] - 1 >= 0 && pieces[y1][x1] - 1 <= 5) || (!whiteToMove && pieces[y1][x1] - 1 >= 6 && pieces[y1][x1] - 1 <= 11))
 				{
-					// go trough every field, the current piece could move and check if it could save the king
+					// go again through every field (to check where the current piece can jump to)
 					for (int x2 = 0; x2 < 8; x2++)
 					{
 						for (int y2 = 0; y2 < 8; y2++)
 						{
-							if (canPieceMoveHere(Vector2i(x1, y1), Vector2i(x2, y2)))
+							// if the piece isn't moved at all, we don't have to check, because it doesn't change anything
+							if (x1 == x2 && y1 == y2)
 							{
-								int piece = pieces[y2][x2];
-								pieces[y2][x2] = pieces[y1][x1];
-								pieces[y1][x1] = 0;
-
-								if (!isKingInCheck(pieces, whiteToMove, whiteEnPassant, blackEnPassant, whiteCastlingLeft, whiteCastlingRight,
-								blackCastlingLeft, blackCastlingRight))
-								{
-									pieces[y1][x1] = pieces[y2][x2];
-									pieces[y2][x2] = piece;
-									return false;
-								}
-
-								pieces[y1][x1] = pieces[y2][x2];
-								pieces[y2][x2] = piece;
+								continue;
+							}
+							
+							// check if the piece has valid fields to move to (since canPieceActuallyMoveHere is also cheking if the king would be in check, we can use it here
+							// to check if the player still has an option to move to whitout putting the king in check)
+							if (canPieceActuallyMoveHere(Vector2i(x1, y1), Vector2i(x2, y2)))
+							{
+								// if one piece is found, we can return false, since the player still has the chance to move
+								return false;
 							}
 						}
 					}
 				}
 			}
 		}
+		// if no piece can be moved without putting the king in check, the game ends in stalemate
 		return true;
 	}
 	return false;
@@ -588,38 +676,48 @@ void updateBeatenPieces()
 	}
 }
 
-// function to update the game
+// main function to update the game, pieces get moved here and all previous function get called here
 void updateGame(Event event, RenderWindow &window)
 {
+	// if the game has ended and for some reason this function still gets called, simply return
 	if (gameState != 0)
 	{
 		return;
 	}
 	
-    if (event.mouseButton.button == Mouse::Left) // specifies left mousebutton
+	// if the left mousebutton got pressed
+    if (event.mouseButton.button == Mouse::Left)
     {
+		// if a white pawn promoted, the player first has to select the piece he want's, before anyone can move
         if (whitePawnPromoted)
         {
+			// go trough the positions of the four pieces, that you can choose
             for (int x = 0; x < 4; x++)
             {
+				// if the player clicked on one
                 if (Mouse::getPosition(window).y > boardPosition.y + 3 * pixelScale && Mouse::getPosition(window).y < boardPosition.y + 3 * pixelScale + 16 * pixelScale && 
                 Mouse::getPosition(window).x > boardPosition.x + 3 * pixelScale + (mousePosition.x - 1.5 + x) * 16 * pixelScale &&
                 Mouse::getPosition(window).x < boardPosition.x + 3 * pixelScale + (mousePosition.x - 0.5 + x) * 16 * pixelScale)
                 {
+					// add the piece to the field
                     pieces[mousePosition.y][mousePosition.x] = x + 2;
 
                     whitePawnPromoted = false;
                 }
             }
         }
+		// if a black pawn promoted, the player first has to select the piece he want's, before anyone can move
         else if (blackPawnPromoted)
         {
+			// go trough the positions of the four pieces, that you can choose
             for (int x = 0; x < 4; x++)
             {
+				// if the player clicked on one
                 if (Mouse::getPosition(window).y > boardPosition.y + 3 * pixelScale + 7 * 16 * pixelScale && Mouse::getPosition(window).y < boardPosition.y + 3 * pixelScale + 16 * pixelScale + 8 * 16 * pixelScale && 
                 Mouse::getPosition(window).x > boardPosition.x + 3 * pixelScale + (mousePosition.x - 1.5 + x) * 16 * pixelScale &&
                 Mouse::getPosition(window).x < boardPosition.x + 3 * pixelScale + (mousePosition.x - 0.5 + x) * 16 * pixelScale)
                 {
+					// add the piece to the field
                     pieces[mousePosition.y][mousePosition.x] = x + 8;
                     pieces[pickedUpPiece.y][pickedUpPiece.x] = 0;
 
@@ -627,7 +725,7 @@ void updateGame(Event event, RenderWindow &window)
                 }
             }
         }
-        // if mouse isn't on the board
+        // if the mouse isn't on the board
         else if (Mouse::getPosition(window).x - boardPosition.x - 3 * pixelScale < 0 || Mouse::getPosition(window).y - boardPosition.y - 3 * 
         pixelScale < 0 || Mouse::getPosition(window).x - boardPosition.x - 3 * pixelScale > 16 * 8 * pixelScale || 
         Mouse::getPosition(window).y - boardPosition.y - 3 * pixelScale > 16 * 8 * pixelScale)
@@ -641,7 +739,7 @@ void updateGame(Event event, RenderWindow &window)
                 piecePickedUp =  false;
             }
         }
-        // when mouse is on the board
+        // if the mouse is on the board
         else
         {						
             // calculate mouse position on the board
@@ -651,6 +749,7 @@ void updateGame(Event event, RenderWindow &window)
             // if no piece is picked up and at the mouse position is a piece
             if (!piecePickedUp && pieces[mousePosition.y][mousePosition.x] != 0)
             {
+				// make sure the player can only pick up his pieces
                 // if white is to move and the piece is white or black is to move and the piece is black, pick the piece up
                 if ((whiteToMove && pieces[mousePosition.y][mousePosition.x] - 1 >= 0 && pieces[mousePosition.y][mousePosition.x] - 1 <= 5) ||
                 (!whiteToMove && pieces[mousePosition.y][mousePosition.x] - 1 >= 6 && pieces[mousePosition.y][mousePosition.x] - 1 <= 11))
@@ -658,8 +757,7 @@ void updateGame(Event event, RenderWindow &window)
                     pickedUpPiece = mousePosition;
                     piecePickedUp = true;
                     // update the positions, the current picked up piece can be put
-                    updateValidPiecePositions(pieces, pickedUpPiece, validPiecePositions, whiteEnPassant, 
-                    blackEnPassant, whiteCastlingLeft, whiteCastlingRight, blackCastlingLeft, blackCastlingRight);
+                    updateValidPiecePositions(pickedUpPiece);
                 }
             }
             // if you place the picked up piece on a valid field
@@ -673,7 +771,7 @@ void updateGame(Event event, RenderWindow &window)
                     {
                         whiteEnPassant = pickedUpPiece.x;
                     }
-                    // if a black pawn is moved two fields forward (globaly backwards), enable en passant for it
+                    // if a black pawn is moved two fields forward (globally backwards), enable en passant for it
                     else if (pieces[pickedUpPiece.y][pickedUpPiece.x] - 1 == 6 && pickedUpPiece.y + 2 == mousePosition.y)
                     {
                         blackEnPassant = pickedUpPiece.x;
@@ -688,8 +786,7 @@ void updateGame(Event event, RenderWindow &window)
                         blackEnPassant = -1;
                     }
 
-                    // if a piece, that was created using pawn promotion is moved, the position in the variable "piecesByPawnPromotion"
-                    // needs to be updated
+                    // if a piece, that was created using pawn promotion, is moved, the position in the variable "piecesByPawnPromotion" needs to be updated
                     if (piecesByPawnPromotion[pickedUpPiece.y][pickedUpPiece.x])
                     {
                         piecesByPawnPromotion[pickedUpPiece.y][pickedUpPiece.x] = false;
@@ -699,64 +796,80 @@ void updateGame(Event event, RenderWindow &window)
                     // if en passant is used from white pawn
                     if (pieces[pickedUpPiece.y][pickedUpPiece.x] - 1 == 0 && pickedUpPiece.y == 3 && mousePosition.x == blackEnPassant)
                     {
+						// move the pawn
                         pieces[mousePosition.y][mousePosition.x] = pieces[pickedUpPiece.y][pickedUpPiece.x];
                         pieces[pickedUpPiece.y][pickedUpPiece.x] = 0;
+						// remove the pawn beaten by en passant
                         pieces[mousePosition.y + 1][mousePosition.x] = 0;
                     }
                     // if en passant is used from black pawn
                     else if (pieces[pickedUpPiece.y][pickedUpPiece.x] - 1 == 6 && pickedUpPiece.y == 4 && mousePosition.x == whiteEnPassant)
                     {
+						// move the pawn
                         pieces[mousePosition.y][mousePosition.x] = pieces[pickedUpPiece.y][pickedUpPiece.x];
                         pieces[pickedUpPiece.y][pickedUpPiece.x] = 0;
+						// remove the pawn beaten by en passant
                         pieces[mousePosition.y - 1][mousePosition.x] = 0;
                     }
-                    // if white king castles to the left
+                    // if white king castles to the left, we need to move the rook too
                     else if (pieces[pickedUpPiece.y][pickedUpPiece.x] - 1 == 5 && mousePosition == Vector2i{1, 7} && whiteCastlingLeft)
                     {
+						// move the king
                         pieces[mousePosition.y][mousePosition.x] = pieces[pickedUpPiece.y][pickedUpPiece.x];
                         pieces[pickedUpPiece.y][pickedUpPiece.x] = 0;
+						// move the rook
                         pieces[7][2] = pieces[7][0];
                         pieces[7][0] = 0;
                     }
-                    // if white king castles to the right
+                    // if white king castles to the right, we need to move the rook too
                     else if (pieces[pickedUpPiece.y][pickedUpPiece.x] - 1 == 5 && mousePosition == Vector2i{6, 7} && whiteCastlingRight)
                     {
+						// move the king
                         pieces[mousePosition.y][mousePosition.x] = pieces[pickedUpPiece.y][pickedUpPiece.x];
                         pieces[pickedUpPiece.y][pickedUpPiece.x] = 0;
+						// move the rook
                         pieces[7][5] = pieces[7][7];
                         pieces[7][7] = 0;
                     }
-                    // if black king castles to the left
+                    // if black king castles to the left, we need to move the rook too
                     else if (pieces[pickedUpPiece.y][pickedUpPiece.x] - 1 == 11 && mousePosition == Vector2i{1, 0} && blackCastlingLeft)
                     {
+						// move the king
                         pieces[mousePosition.y][mousePosition.x] = pieces[pickedUpPiece.y][pickedUpPiece.x];
                         pieces[pickedUpPiece.y][pickedUpPiece.x] = 0;
+						// move the rook
                         pieces[0][2] = pieces[0][0];
                         pieces[0][0] = 0;
                     }
-                    // if black king castles to the right
+                    // if black king castles to the right, we need to move the rook too
                     else if (pieces[pickedUpPiece.y][pickedUpPiece.x] - 1 == 11 && mousePosition == Vector2i{6, 0} && blackCastlingRight)
                     {
+						// move the king
                         pieces[mousePosition.y][mousePosition.x] = pieces[pickedUpPiece.y][pickedUpPiece.x];
                         pieces[pickedUpPiece.y][pickedUpPiece.x] = 0;
+						// move the rook
                         pieces[0][5] = pieces[0][7];
                         pieces[0][7] = 0;
                     }
                     // if a white pawn is promoted
                     else if (pieces[pickedUpPiece.y][pickedUpPiece.x] - 1 == 0 && mousePosition.y == 0)
                     {
+						// move the pawn
                         pieces[mousePosition.y][mousePosition.x] = 1;
                         pieces[pickedUpPiece.y][pickedUpPiece.x] = 0;
 
+						// enable the option to select a piece
                         piecesByPawnPromotion[mousePosition.y][mousePosition.x] = true;
                         whitePawnPromoted = true;
                     }
                     // if a black pawn is promoted
                     else if (pieces[pickedUpPiece.y][pickedUpPiece.x] - 1 == 6 && mousePosition.y == 7)
                     {
+						// move the pawn
                         pieces[mousePosition.y][mousePosition.x] = 7;
                         pieces[pickedUpPiece.y][pickedUpPiece.x] = 0;
 
+						// enable the option to select a piece
                         piecesByPawnPromotion[mousePosition.y][mousePosition.x] = true;
                         blackPawnPromoted = true;
                     }
@@ -806,6 +919,7 @@ void updateGame(Event event, RenderWindow &window)
                     // update the list of beaten pieces
                     updateBeatenPieces();
 
+					// check for checkmate and stalemate, to end the game
                     if (isCheckmate())
                     {
                         gameState = whiteToMove ? 2 : 1;
@@ -836,6 +950,7 @@ void updateGame(Event event, RenderWindow &window)
 // function to reset the game, so you can start over
 void resetGame()
 {
+	// reset the board
 	int startPieces[8][8] = {
     {8, 9, 10, 11, 12, 10, 9, 8},
     {7, 7, 7, 7, 7, 7, 7, 7},
@@ -848,6 +963,7 @@ void resetGame()
 	};
 	memcpy(pieces, startPieces, sizeof(pieces));
 
+	// reset all other variables
 	int startBeatenPieces[12] = {0};
 	memcpy(beatenPieces, startBeatenPieces, sizeof(beatenPieces));
 
@@ -957,19 +1073,19 @@ void drawPiece(RenderWindow &window, int piece, Vector2i position)
 	pieceSprites[piece].setPosition(position.x, position.y);
 
 	// adjust some piece positions, so that all line up (because some pieces are taller)
-	if (piece == 1 || piece == 7)
+	if (piece == 1 || piece == 7) // rook = one pixel down
 	{
 		Vector2 position = pieceSprites[piece].getPosition();
 		position.y -= 1 * pixelScale;
 		pieceSprites[piece].setPosition(position);
 	}
-	else if (piece == 2 || piece == 8)
+	else if (piece == 2 || piece == 8) // knight = two pixels down
 	{
 		Vector2 position = pieceSprites[piece].getPosition();
 		position.y -= 2 * pixelScale;
 		pieceSprites[piece].setPosition(position);
 	}
-	else if (piece != 0 && piece != 6)
+	else if (piece != 0 && piece != 6) // bishop, queen and king = 3 pixels down
 	{
 		Vector2 position = pieceSprites[piece].getPosition();
 		position.y -= 3 * pixelScale;
@@ -986,12 +1102,12 @@ void drawPiece(RenderWindow &window, int piece, Vector2i position)
 		}
 	}
 
-	// set the shadows position
+	// set the shadows position (two pixels to the right and 8 pixels down)
 	pieceShadowSprites[currentShadowIndex].setPosition(position.x + 2 * pixelScale, position.y + 8 * pixelScale);
 
 	// draw piece and shadow
 	window.draw(pieceSprites[piece]);
-	window.draw(pieceShadowSprites[currentShadowIndex], BlendMultiply);
+	window.draw(pieceShadowSprites[currentShadowIndex], BlendMultiply); // change blendmode to make it transparent
 }
 
 // function to draw all pieces
@@ -1103,18 +1219,23 @@ void drawInavlidFields(RenderWindow &window)
 // function to draw option to select, when pawn is promoted
 void drawPawnPromotionOptions(RenderWindow &window)
 {
+	// if a pawn was promoted
     if (whitePawnPromoted || blackPawnPromoted)
     {
+		// darken the window
         RectangleShape windowDarken;
         windowDarken.setFillColor(Color(120, 120, 120));
         windowDarken.setSize(Vector2f(windowSizeX, windowSizeY));
 
         window.draw(windowDarken, BlendMultiply);
 
+		// draw the options
         if (whitePawnPromoted)
         {
+			// go through every possible option (rook, knight, bishop and queen) and draw them side by side
             for (int i = 0; i < 4; i++)
             {
+				// draw the piece
                 Vector2i position = {boardPosition.x + 7 * pixelScale + (mousePosition.x - 1.5 + i) * 16 * pixelScale, boardPosition.y + 3 * pixelScale};
 
                 drawPiece(window, i + 1, position);
@@ -1122,8 +1243,10 @@ void drawPawnPromotionOptions(RenderWindow &window)
         }
         else if (blackPawnPromoted)
         {
+			// go through every possible option (rook, knight, bishop and queen) and draw them side by side
             for (int i = 0; i < 4; i++)
             {
+				// draw the piece
                 Vector2i position = {boardPosition.x + 7 * pixelScale + (mousePosition.x - 1.5 + i) * 16 * pixelScale, boardPosition.y + 3 * pixelScale + 7 * 16 * pixelScale};
 
                 drawPiece(window, i + 7, position);
@@ -1139,10 +1262,13 @@ void drawGame(RenderWindow &window)
     window.draw(boardShadowSprite, BlendMultiply);
     window.draw(boardSprite);
 
+	// draw invalid fields, when piece is picked up
     drawInavlidFields(window);
 
+	// draw pieces (including beaten pieces)
     drawPieces(window);
 
+	// draw the pieces you can select if a pawn was promoted
     drawPawnPromotionOptions(window);
 }
 

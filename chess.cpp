@@ -15,9 +15,10 @@ using namespace std;
 
 int main()
 {
-	// load all textures
+	// load all fonts
 	loadFonts();
 
+	// load all textures
 	loadMenuTextures();
 
 	loadGameTextures();
@@ -45,11 +46,13 @@ int main()
 
 				// mousebutton pressed
 				case Event::MouseButtonPressed:
+					// if you are on the menu and click, reset the game and change the mode to game
 					if (mode == 0)
 					{
 						mode = 1;
 						resetGame();
 					}
+					// if you are in the game, update it every time you click and change to game_over mode if the game ended (gamestate != 0)
 					else if (mode == 1)
 					{
 						updateGame(event, window);
@@ -59,6 +62,7 @@ int main()
 							mode = 2;
 						}
 					}
+					// if your are on the game_over screen and click, change the mode to menu
 					else if (mode == 2)
 					{
 						mode = 0;
@@ -74,6 +78,7 @@ int main()
 		// clear the screen of the graphics window
 		window.clear(backgroundColor);
 		
+		// draw every thing for the current mode
 		if (mode == 0)
 		{
 			drawMenu(window);
@@ -84,7 +89,7 @@ int main()
 		}
 		else if (mode == 2)
 		{
-			drawGameOver(window, gameState);
+			drawGameOver(window);
 		}
 
 		// display everything you have drawn at once

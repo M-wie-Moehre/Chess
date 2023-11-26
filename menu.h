@@ -19,6 +19,7 @@ Text pressToPlayText;
 
 // menu functions
 
+// function to load all texures required for the menu
 void loadMenuTextures()
 {
     if (!chessLogoTexture.loadFromFile("textures\\logo.png"))
@@ -33,10 +34,14 @@ void loadMenuTextures()
 }
 
 // drawing functions
+
+// function to draw the menu
 void drawMenu(RenderWindow &window)
 {
+    // draw the logo
     window.draw(chessLogoSprite);
 
+    // draw the text
     pressToPlayText.setFont(textFont);
     pressToPlayText.setString("Press to play ...");
     pressToPlayText.setFillColor(Color(140, 140, 140));
