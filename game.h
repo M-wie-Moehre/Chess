@@ -29,7 +29,7 @@ int pieces[8][8] = {
     {2, 3, 4, 5, 6, 4, 3, 2}
 };
 
-int beatenPieces[12] = {0}; // saves how many pieces of each type got beaten
+int beatenPieces[12] = {0}; // saves how many pieces of each type got beaten (0 = white pawn, 1 = white rook ...)
 bool validPiecePositions[8][8]; // saves, which fields, the current picked up piece can be put on
 
 int whiteEnPassant = -1; // saves which white pawn moved two fields forward and can be beaten en passant (-1: none)
@@ -585,6 +585,14 @@ bool isStalemate()
 	// check if the king isn't in check, because this is necessary for stalemate
 	if (!isKingInCheck())
 	{
+		// if every player only has a king an either one rook or bishop, the game ends in stalemate
+		if (beatenPieces[0] == 8 && beatenPieces[1] == 2 && ((beatenPieces[2] == 2 && beatenPieces[3] == 1) || (beatenPieces[2] == 1 && beatenPieces[3] == 2) || (beatenPieces[2] == 2 && beatenPieces[3] == 2)) 
+		&& beatenPieces[4] == 1 
+		&& beatenPieces[6] == 8 && beatenPieces[7] == 2 && ((beatenPieces[8] == 2 && beatenPieces[9] == 1) || (beatenPieces[8] == 1 && beatenPieces[9] == 2) || (beatenPieces[8] == 2 && beatenPieces[9] == 2)) && beatenPieces[10] == 1)
+		{
+			return true;
+		}
+
 		// go through every field (to check for own pieces)
 		for (int x1 = 0; x1 < 8; x1++)
 		{
@@ -616,6 +624,7 @@ bool isStalemate()
 				}
 			}
 		}
+
 		// if no piece can be moved without putting the king in check, the game ends in stalemate
 		return true;
 	}
