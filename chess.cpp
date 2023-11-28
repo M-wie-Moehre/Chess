@@ -49,8 +49,13 @@ int main()
 				// if you are on the menu and click, reset the game and change the mode to game
 				if (mode == 0)
 				{
-					mode = 1;
-					resetGame();
+					Vector2i mouse_pos = sf::Mouse::getPosition(window);
+					Vector2f translated_pos = window.mapPixelToCoords(mouse_pos);
+					if(playLocalSprite.getGlobalBounds().contains(translated_pos))
+					{
+						mode = 1;
+						resetGame();
+					}
 				}
 				// if you are in the game, update it every time you click and change to game_over mode if the game ended (gamestate != 0)
 				else if (mode == 1)
