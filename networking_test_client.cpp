@@ -12,34 +12,61 @@ int main()
 {
     // Create a socket and connect it to 192.168.178.62 on port 55001
     TcpSocket socket;
-    socket.connect("192.168.178.22", 55001);
-    std::cout << "Connected to host: " << "192.168.178.22" << endl;
+    socket.connect("172.17.4.199", 55001);
+    cout << "Connected to host: " << "172.17.4.199" << endl;
 
-    bool proceed = true;
-    string messageSend = "";
-    while (proceed || messageSend != "q")
+    socket.setBlocking(false);
+
+    Packet packetSend;
+    string messageSend = "Hallo hier ist der Client";
+    Packet packetReceive;
+    string messageReceive;
+
+    RenderWindow window(VideoMode(400, 400), "Networking Test Client");
+
+    while (window.isOpen())
     {
-        // input a message
-        getline(cin, messageSend);
+        Event event;
 
-        // pack the message to ensure it gets send correctly
-        Packet packetSend;
-        packetSend << messageSend;
+        while (window.pollEvent(event))
+        {
+            if (event.type == Event::Closed)
+            {
+                socket.setBlocking(true);
 
-        // send a message to the connected host
-        socket.send(packetSend);
+                packetSend << "q";
+
+                socket.send(packetSend);
+
+                socket.setBlocking(false);
+
+                window.close();
+            }
+            else if (event.type == Event::MouseButtonPressed)
+            {
+                socket.setBlocking(true);
+
+                // pack the message to ensure it gets send correctly
+                packetSend << messageSend;
+
+                // send a message to the connected host
+                socket.send(packetSend);
+
+                socket.setBlocking(false);
+            }
+        }
 
         // receive a message from the client
-        Packet packetReceive;
-        socket.receive(packetReceive);
-
-        // unpack the message
-        string messageReceive;
-        packetReceive >> messageReceive;
-        cout << messageReceive << endl;
-        if (messageReceive == 'q')
+        if (socket.receive(packetReceive) == Socket::Done)
         {
-            proceed = false;
+
+            // unpack the message
+            packetReceive >> messageReceive;
+            cout << messageReceive << endl;
+            if (messageReceive == 'q')
+            {
+                window.close();
+            }
         }
     }
 }

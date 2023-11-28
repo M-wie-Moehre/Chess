@@ -11,38 +11,67 @@ using namespace std;
 int main()
 {
     // Create a listener to wait for incoming connections on port 55001
-    sf::TcpListener listener;
+    TcpListener listener;
     listener.listen(55001);
     // Wait for a connection
-    sf::TcpSocket socket;
+    TcpSocket socket;
     listener.accept(socket);
-    std::cout << "New client connected: " << socket.getRemoteAddress() << endl;
+    cout << "New client connected: " << socket.getRemoteAddress() << endl;
 
-    bool proceed = true;
-    string messageSend = "";
-    while (proceed || messageSend != "q")
+    socket.setBlocking(false);
+
+    Packet packetSend;
+    string messageSend = "Hallo hier ist der Host";
+    Packet packetReceive;
+    string messageReceive;
+
+    RenderWindow window(VideoMode(400, 400), "Networking Test Host");
+
+    while (window.isOpen())
     {
-        // receive a message from the client
-        Packet packetReceive;
-        socket.receive(packetReceive);
+        Event event;
 
-        // unpack the message
-        string messageReceive;
-        packetReceive >> messageReceive;
-        cout << messageReceive << endl;
-        if (messageReceive == 'q')
+        while (window.pollEvent(event))
         {
-            proceed = false;
+            if (event.type == Event::Closed)
+            {
+                socket.setBlocking(true);
+
+                packetSend << "q";
+
+                socket.send(packetSend);
+
+                socket.setBlocking(false);
+
+                cin.ignore();
+
+                window.close();
+            }
+            else if (event.type == Event::MouseButtonPressed)
+            {
+                socket.setBlocking(true);
+
+                // pack the message to ensure it gets send correctly
+                packetSend << messageSend;
+
+                // send a message to the connected host
+                socket.send(packetSend);
+
+                socket.setBlocking(false);
+            }
         }
 
-        // input a message
-        getline(cin, messageSend);
+        // receive a message from the client
+        if (socket.receive(packetReceive) == Socket::Done)
+        {
 
-        // pack the message to ensure it gets send correctly
-        Packet packetSend;
-        packetSend << messageSend;
-
-        // send a message to the connected host
-        socket.send(packetSend);
+            // unpack the message
+            packetReceive >> messageReceive;
+            cout << messageReceive << endl;
+            if (messageReceive == 'q')
+            {
+                window.close();
+            }
+        }
     }
 }
