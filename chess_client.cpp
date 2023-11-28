@@ -1,5 +1,6 @@
 // include SFML library headers
 #include <SFML/Graphics.hpp>
+#include <SFML/Network.hpp>
 
 // use the SFML namespace
 using namespace sf;
@@ -26,8 +27,17 @@ int main()
 
 	loadGameOverTextures();
 
+    // create a socket and connect it to 192.168.178.62 on port 55001
+    TcpSocket socket;
+    socket.connect("192.168.178.62", 55001);
+	// print if connected
+    cout << "Connected to host: " << "192.168.178.62" << endl;
+
+	// set blocking to false, so that the program doesn't stop and wait until something happen (for example until a message is received)
+    socket.setBlocking(false);
+
     // create and open a new graphics window of size 800x800 Pixel and a title
-	RenderWindow window(VideoMode(windowSizeX, windowSizeY), "Chess");
+	RenderWindow window(VideoMode(windowSizeX, windowSizeY), "Online Chess - Client");
 
 	// main loop that is active until the graphics window is closed
 	while (window.isOpen())
@@ -50,8 +60,24 @@ int main()
 					// if you are on the menu and click, reset the game and change the mode to game
 					if (mode == 0)
 					{
-						mode = 1;
-						resetGame();
+						// send to the client, if the host is ready
+						clientReady = !clientReady;
+
+						socket.setBlocking(true);
+
+						Packet packetSend;
+						message = clientReady ? 1 : 0;
+						packetSend << message;
+
+						socket.send(packetSend);
+
+						socket.setBlocking(false);
+
+						if (hostReady && clientReady)
+						{
+							mode = 1;
+							resetGame();
+						}
 					}
 					// if you are in the game, update it every time you click and change to game_over mode if the game ended (gamestate != 0)
 					else if (mode == 1)
@@ -75,6 +101,24 @@ int main()
 					break;
 			}
 		}
+
+		Packet packetReceive;
+        // receive a message from the client
+        if (socket.receive(packetReceive) == Socket::Done)
+        {
+			Uint8 messageReceive;
+            // if the message gets unpacked correctly
+            if (packetReceive >> messageReceive)
+            {
+                hostReady = messageReceive == 1 ? true : false;
+
+				if (hostReady && clientReady)
+				{
+					mode = 1;
+					resetGame();
+				}
+            }
+        }
 
 		// clear the screen of the graphics window
 		window.clear(backgroundColor);

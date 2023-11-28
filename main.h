@@ -20,6 +20,10 @@ int windowSizeY = 800;
 // current mode (0 = main menu; 1 = game; 2 = game over)
 int mode = 0;
 
+Uint8 message;
+bool hostReady = false;
+bool clientReady = false;
+
 Font textFont;
 
 // main functions

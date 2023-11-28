@@ -585,10 +585,11 @@ bool isStalemate()
 	// check if the king isn't in check, because this is necessary for stalemate
 	if (!isKingInCheck())
 	{
-		// if every player only has a king an either one rook or bishop, the game ends in stalemate
-		if (beatenPieces[0] == 8 && beatenPieces[1] == 2 && ((beatenPieces[2] == 2 && beatenPieces[3] == 1) || (beatenPieces[2] == 1 && beatenPieces[3] == 2) || (beatenPieces[2] == 2 && beatenPieces[3] == 2)) 
-		&& beatenPieces[4] == 1 
-		&& beatenPieces[6] == 8 && beatenPieces[7] == 2 && ((beatenPieces[8] == 2 && beatenPieces[9] == 1) || (beatenPieces[8] == 1 && beatenPieces[9] == 2) || (beatenPieces[8] == 2 && beatenPieces[9] == 2)) && beatenPieces[10] == 1)
+		// if every player only has a king and either one rook or one bishop, the game ends in stalemate
+		if (beatenPieces[0] == 8 && beatenPieces[1] == 2 && ((beatenPieces[2] == 2 && beatenPieces[3] == 1) || (beatenPieces[2] == 1 && beatenPieces[3] == 2) ||
+		(beatenPieces[2] == 2 && beatenPieces[3] == 2)) && beatenPieces[4] == 1 
+		&& beatenPieces[6] == 8 && beatenPieces[7] == 2 && ((beatenPieces[8] == 2 && beatenPieces[9] == 1) || (beatenPieces[8] == 1 && beatenPieces[9] == 2) || 
+		(beatenPieces[8] == 2 && beatenPieces[9] == 2)) && beatenPieces[10] == 1)
 		{
 			return true;
 		}
