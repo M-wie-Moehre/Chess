@@ -38,41 +38,35 @@ int main()
 		// check if there actually was some user interaction
 		while (window.pollEvent(event))
 		{
-			switch (event.type)
+			// if window is closed
+			if (event.type == Event::Closed)
 			{
-				// window closed
-				case Event::Closed:
-					window.close();
-					break;
-
-				// mousebutton pressed
-				case Event::MouseButtonPressed:
-					// if you are on the menu and click, reset the game and change the mode to game
-					if (mode == 0)
-					{
-						mode = 1;
-						resetGame();
-					}
-					// if you are in the game, update it every time you click and change to game_over mode if the game ended (gamestate != 0)
-					else if (mode == 1)
-					{
-						updateGame(event, window);
-						
-						if (gameState != 0)
-						{
-							mode = 2;
-						}
-					}
-					// if your are on the game_over screen and click, change the mode to menu
-					else if (mode == 2)
-					{
-						mode = 0;
-					}
-					break;
+				window.close();
+			}
+			// if mousebutton is pressed
+			else if (event.type == Event::MouseButtonPressed)
+			{
+				// if you are on the menu and click, reset the game and change the mode to game
+				if (mode == 0)
+				{
+					mode = 1;
+					resetGame();
+				}
+				// if you are in the game, update it every time you click and change to game_over mode if the game ended (gamestate != 0)
+				else if (mode == 1)
+				{
+					updateGame(event, window);
 					
-				// we don't process other types of events
-				default:
-					break;
+					if (gameState != 0)
+					{
+						mode = 2;
+					}
+				}
+				// if your are on the game_over screen and click, change the mode to menu
+				else if (mode == 2)
+				{
+					mode = 0;
+				}
 			}
 		}
 

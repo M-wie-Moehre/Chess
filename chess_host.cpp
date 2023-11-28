@@ -52,57 +52,62 @@ int main()
 		// check if there actually was some user interaction
 		while (window.pollEvent(event))
 		{
-			switch (event.type)
+			// window closed
+			if (event.type == Event::Closed)
 			{
-				// window closed
-				case Event::Closed:
-					window.close();
-					break;
+				// close this and the other window
+				socket.setBlocking(true);
 
-				// mousebutton pressed
-				case Event::MouseButtonPressed:
-					// if you are on the menu and click, reset the game and change the mode to game
-					if (mode == 0)
+				Packet packetSend;
+				messageSend = 0;
+				packetSend << messageSend;
+
+				socket.send(packetSend);
+
+				socket.setBlocking(false);
+
+				window.close();
+
+			}
+			else if (event.type == Event::MouseButtonPressed)
+			{
+				// if you are on the menu and click, reset the game and change the mode to game
+				if (mode == 0)
+				{
+					// send to the client, if the client is ready
+					hostReady = !hostReady;
+
+					socket.setBlocking(true);
+
+					Packet packetSend;
+					messageSend = hostReady ? 1 : 2;
+					packetSend << messageSend;
+
+					socket.send(packetSend);
+
+					socket.setBlocking(false);
+
+					if (hostReady && clientReady)
 					{
-						// send to the client, if the host is ready
-						hostReady = !hostReady;
-
-						socket.setBlocking(true);
-
-						Packet packetSend;
-						message = hostReady ? 1 : 0;
-						packetSend << message;
-
-						socket.send(packetSend);
-
-						socket.setBlocking(false);
-
-						if (hostReady && clientReady)
-						{
-							mode = 1;
-							resetGame();
-						}
+						mode = 1;
+						resetGame();
 					}
-					// if you are in the game, update it every time you click and change to game_over mode if the game ended (gamestate != 0)
-					else if (mode == 1)
-					{
-						updateGame(event, window);
-						
-						if (gameState != 0)
-						{
-							mode = 2;
-						}
-					}
-					// if your are on the game_over screen and click, change the mode to menu
-					else if (mode == 2)
-					{
-						mode = 0;
-					}
-					break;
+				}
+				// if you are in the game, update it every time you click and change to game_over mode if the game ended (gamestate != 0)
+				else if (mode == 1)
+				{
+					updateGame(event, window);
 					
-				// we don't process other types of events
-				default:
-					break;
+					if (gameState != 0)
+					{
+						mode = 2;
+					}
+				}
+				// if your are on the game_over screen and click, change the mode to menu
+				else if (mode == 2)
+				{
+					mode = 0;
+				}
 			}
 		}
 
@@ -114,7 +119,18 @@ int main()
             // if the message gets unpacked correctly
             if (packetReceive >> messageReceive)
             {
-                clientReady = messageReceive == 1 ? true : false;
+				if (messageReceive == 0)
+				{
+					window.close();
+				}
+				else if (mode == 0 && messageReceive == 1)
+				{
+                	clientReady = true;
+				}
+				else if (mode == 0)
+				{
+					clientReady = false;
+				}
 
 				if (hostReady && clientReady)
 				{

@@ -42,8 +42,6 @@ int main()
 
                 socket.setBlocking(false);
 
-                cin.ignore();
-
                 window.close();
             }
             else if (event.type == Event::MouseButtonPressed)
