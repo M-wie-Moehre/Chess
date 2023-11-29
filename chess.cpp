@@ -47,30 +47,30 @@ int main()
 			else if (event.type == Event::MouseButtonPressed)
 			{
 				// if you are on the menu and click, reset the game and change the mode to game
-				if (mode == 0)
+				if (mode == MENU)
 				{
 					Vector2i mouse_pos = sf::Mouse::getPosition(window);
 					Vector2f translated_pos = window.mapPixelToCoords(mouse_pos);
 					if(playLocalSprite.getGlobalBounds().contains(translated_pos))
 					{
-						mode = 1;
+						mode = GAME;
 						resetGame();
 					}
 				}
 				// if you are in the game, update it every time you click and change to game_over mode if the game ended (gamestate != 0)
-				else if (mode == 1)
+				else if (mode == GAME)
 				{
 					updateGame(event, window);
 					
 					if (gameState != 0)
 					{
-						mode = 2;
+						mode = GAME_OVER;
 					}
 				}
 				// if your are on the game_over screen and click, change the mode to menu
 				else if (mode == 2)
 				{
-					mode = 0;
+					mode = MENU;
 				}
 			}
 		}
@@ -79,15 +79,15 @@ int main()
 		window.clear(backgroundColor);
 		
 		// draw every thing for the current mode
-		if (mode == 0)
+		if (mode == MENU)
 		{
 			drawMenu(window);
 		}
-		else if (mode == 1)
+		else if (mode == GAME)
 		{
 			drawGame(window);
 		}
-		else if (mode == 2)
+		else if (mode == GAME_OVER)
 		{
 			drawGameOver(window);
 		}

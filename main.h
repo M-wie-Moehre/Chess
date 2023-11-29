@@ -17,8 +17,13 @@ int pixelScale = 4; // the factor, on how much the textures get scaled up
 int windowSizeX = 800;
 int windowSizeY = 800;
 
-// current mode (0 = main menu; 1 = game; 2 = game over)
-int mode = 0;
+// current mode (0 = menu; 1 = game; 2 = game over; 3 = choose_online_mode)
+#define MENU 0
+#define GAME 1
+#define GAME_OVER 2
+#define CHOOSE_ONLINE_MODE 3
+
+int mode = MENU;
 
 Uint8 messageSend;
 bool hostReady = false;
