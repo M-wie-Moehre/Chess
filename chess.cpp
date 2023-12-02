@@ -10,6 +10,7 @@ using namespace std;
 // include the custom game headers
 #include "main.h"
 #include "menu.h"
+#include "choose_online_mode.h"
 #include "game.h"
 #include "game_over.h"
 
@@ -21,6 +22,8 @@ int main()
 
 	// load all textures
 	loadMenuTextures();
+
+	loadChooseOnlineModeTextures();
 
 	loadGameTextures();
 
@@ -49,12 +52,16 @@ int main()
 				// if you are on the menu and click, reset the game and change the mode to game
 				if (mode == MENU)
 				{
-					Vector2i mouse_pos = sf::Mouse::getPosition(window);
-					Vector2f translated_pos = window.mapPixelToCoords(mouse_pos);
-					if(playLocalSprite.getGlobalBounds().contains(translated_pos))
+					Vector2i mousePosition = sf::Mouse::getPosition(window);
+					Vector2f translatedPosition = window.mapPixelToCoords(mousePosition);
+					if (playLocalSprite.getGlobalBounds().contains(translatedPosition))
 					{
 						mode = GAME;
 						resetGame();
+					}
+					else if (playOnlineSprite.getGlobalBounds().contains(translatedPosition))
+					{
+						mode = CHOOSE_ONLINE_MODE;
 					}
 				}
 				// if you are in the game, update it every time you click and change to game_over mode if the game ended (gamestate != 0)
@@ -67,13 +74,57 @@ int main()
 						mode = GAME_OVER;
 					}
 				}
-				// if your are on the game_over screen and click, change the mode to menu
-				else if (mode == 2)
+				// if you are on the game_over screen and click, change the mode to menu
+				else if (mode == GAME_OVER)
 				{
 					mode = MENU;
 				}
+				// if you have to choose the online mode
+				else if (mode == CHOOSE_ONLINE_MODE)
+				{
+					Vector2i mousePosition = sf::Mouse::getPosition(window);
+					Vector2f translatedPosition = window.mapPixelToCoords(mousePosition);
+					if (createGameSprite.getGlobalBounds().contains(translatedPosition))
+					{
+						TcpListener listener;
+						listener.listen(55001);
+
+						if (listener.accept(socket) == Socket::Done)
+						{
+							cout << "New client connected: " << socket.getRemoteAddress() << endl;
+							socket.setBlocking(false);
+
+							mode = GAME;
+							playOnline = true;
+							youAreHost = true;
+						}
+						else
+						{
+							cout << "Failed to connect to client." << endl;
+						}
+					}
+					else if (joinGameSprite.getGlobalBounds().contains(translatedPosition))
+					{
+						if (socket.connect("192.168.178.62", 55001) == Socket::Done)
+						{
+							cout << "Connected to host: " << "192.168.178.62" << endl;
+
+							socket.setBlocking(false);
+
+							mode = GAME;
+							playOnline = true;
+							youAreHost = false;
+						}
+						else
+						{
+							cout << "Failed to connect to host." << endl;
+						}		
+					}
+				}
 			}
 		}
+
+
 
 		// clear the screen of the graphics window
 		window.clear(backgroundColor);
@@ -90,6 +141,10 @@ int main()
 		else if (mode == GAME_OVER)
 		{
 			drawGameOver(window);
+		}
+		else if (mode == CHOOSE_ONLINE_MODE)
+		{
+			drawChooseOnlineMode(window);
 		}
 
 		// display everything you have drawn at once

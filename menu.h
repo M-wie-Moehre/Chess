@@ -20,8 +20,6 @@ Sprite playLocalSprite;
 Texture playOnlineTexture;
 Sprite playOnlineSprite;
 
-Text pressToPlayText;
-
 // menu functions
 
 // function to load all texures required for the menu
@@ -66,25 +64,6 @@ void drawMenu(RenderWindow &window)
 {
     // draw the logo
     window.draw(chessLogoSprite);
-
-    /*// draw the text
-    pressToPlayText.setFont(textFont);
-    if (hostReady && clientReady)
-    {
-        pressToPlayText.setString("Press to play ...  2 / 2");
-    }
-    else if (hostReady != clientReady)
-    {
-        pressToPlayText.setString("Press to play ...  1 / 2");
-    }
-    else
-    {
-        pressToPlayText.setString("Press to play ...  0 / 2");
-    }
-    pressToPlayText.setFillColor(Color(140, 140, 140));
-    pressToPlayText.setPosition(Vector2f(windowSizeX / 2 - 120, windowSizeY / 2 + 140));
-
-    window.draw(pressToPlayText);*/
 
     window.draw(playLocalSprite);
     window.draw(playOnlineSprite);
