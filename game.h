@@ -689,7 +689,7 @@ void updateBeatenPieces()
 // main function to update the game, pieces get moved here and all previous function get called here
 void updateGame(Event event, RenderWindow &window)
 {
-	if (!playOnline || (playOnline && ((youAreHost && whiteToMove) || (!youAreHost && !whiteToMove))))
+	if (!playOnline || (playOnline && ((youAreHost && (whiteToMove || whitePawnPromoted)) || (!youAreHost && (!whiteToMove || blackPawnPromoted)))))
 	{
 		// if the game has ended and for some reason this function still gets called, simply return
 		if (gameState != 0)
@@ -715,6 +715,33 @@ void updateGame(Event event, RenderWindow &window)
 						pieces[mousePosition.y][mousePosition.x] = x + 2;
 
 						whitePawnPromoted = false;
+
+						// send over the pieces, to update the board for the other person
+						if (playOnline)
+						{
+							Packet packet;
+							for (int x = 0; x < 8; x++)
+							{
+								for (int y = 0; y < 8; y++)
+								{
+									packet << pieces[y][x];
+								}
+							}
+
+							packet << whiteEnPassant << blackEnPassant;
+
+							for (int x = 0; x < 8; x++)
+							{
+								for (int y = 0; y < 8; y++)
+								{
+									packet << piecesByPawnPromotion[y][x];
+								}
+							}
+
+							socket.send(packet);
+
+							cout << "Pieces were send." << endl;
+						}
 					}
 				}
 			}
@@ -734,6 +761,33 @@ void updateGame(Event event, RenderWindow &window)
 						pieces[pickedUpPiece.y][pickedUpPiece.x] = 0;
 
 						blackPawnPromoted = false;
+
+						// send over the pieces, to update the board for the other person
+						if (playOnline)
+						{
+							Packet packet;
+							for (int x = 0; x < 8; x++)
+							{
+								for (int y = 0; y < 8; y++)
+								{
+									packet << pieces[y][x];
+								}
+							}
+
+							packet << whiteEnPassant << blackEnPassant;
+
+							for (int x = 0; x < 8; x++)
+							{
+								for (int y = 0; y < 8; y++)
+								{
+									packet << piecesByPawnPromotion[y][x];
+								}
+							}
+
+							socket.send(packet);
+
+							cout << "Pieces were send." << endl;
+						}
 					}
 				}
 			}
@@ -925,11 +979,8 @@ void updateGame(Event event, RenderWindow &window)
 							whiteCastlingRight = false;
 						}
 
-						// change player turn
-						whiteToMove = !whiteToMove;
-
 						// send over the pieces, to update the board for the other person
-						if (playOnline)
+						if (playOnline && ((youAreHost && !whitePawnPromoted) || (!youAreHost && !blackPawnPromoted)))
 						{
 							Packet packet;
 							for (int x = 0; x < 8; x++)
@@ -939,10 +990,24 @@ void updateGame(Event event, RenderWindow &window)
 									packet << pieces[y][x];
 								}
 							}
+
+							packet << whiteEnPassant << blackEnPassant;
+
+							for (int x = 0; x < 8; x++)
+							{
+								for (int y = 0; y < 8; y++)
+								{
+									packet << piecesByPawnPromotion[y][x];
+								}
+							}
+
 							socket.send(packet);
-							
+
 							cout << "Pieces were send." << endl;
 						}
+
+						// change player turn
+						whiteToMove = !whiteToMove;
 						
 						// update the list of beaten pieces
 						updateBeatenPieces();

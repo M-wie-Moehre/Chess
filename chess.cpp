@@ -138,6 +138,16 @@ int main()
 					}
 				}
 
+				packetReceive >> whiteEnPassant >> blackEnPassant;
+
+				for (int x = 0; x < 8; x++)
+				{
+					for (int y = 0; y < 8; y++)
+					{
+						packetReceive >> piecesByPawnPromotion[y][x];
+					}
+				}
+
 				// when you are host, you are the one to move next and otherwise, the client (black) is to move
 				whiteToMove = youAreHost;
 
