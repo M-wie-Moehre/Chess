@@ -124,7 +124,44 @@ int main()
 			}
 		}
 
+		if (playOnline)
+		{
+			Packet packetReceive;
+			// receive a message from the client
+			if (socket.receive(packetReceive) == Socket::Done)
+			{
+				for (int x = 0; x < 8; x++)
+				{
+					for (int y = 0; y < 8; y++)
+					{
+						packetReceive >> pieces[y][x];
+					}
+				}
 
+				// when you are host, you are the one to move next and otherwise, the client (black) is to move
+				whiteToMove = youAreHost;
+
+				// update the list of beaten pieces
+				updateBeatenPieces();
+
+				// check for checkmate and stalemate, to end the game
+				if (isCheckmate())
+				{
+					gameState = whiteToMove ? 2 : 1;
+				}
+				else if (isStalemate())
+				{
+					gameState = 3;
+				}
+
+				if (gameState != 0)
+				{
+					mode = GAME_OVER;
+				}
+
+				cout << "Pieces were recieved." << endl;
+			}
+		}
 
 		// clear the screen of the graphics window
 		window.clear(backgroundColor);
