@@ -46,6 +46,18 @@ int main()
 			// if window is closed
 			if (event.type == Event::Closed)
 			{
+				if (playOnline)
+				{
+					Packet packet;
+
+					Uint8 status;
+					status = 4;
+
+					packet << status;
+
+					socket.send(packet);
+				}
+
 				window.close();
 			}
 			// if mousebutton is pressed
