@@ -14,6 +14,7 @@ using namespace std;
 
 Texture createGameTexture;
 Sprite createGameSprite;
+
 Texture joinGameTexture;
 Sprite joinGameSprite;
 

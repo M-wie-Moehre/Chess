@@ -30,9 +30,8 @@ int mode = MENU;
 // variables for network usage
 bool playOnline = false; // saves if the game is played online or local
 bool youAreHost; // saves if you are the host (the one who created the game) or the client (the one who joined the game)
-Uint8 messageSend; // includes the message, that gets send to the other person
-//bool creatingGame = false;
-//bool joiningGame = false;
+bool hostReady = false;
+bool clientReady = false;
 
 TcpSocket socket; // the socket, for the communication between the computers
 

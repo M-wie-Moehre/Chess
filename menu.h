@@ -17,6 +17,7 @@ Sprite chessLogoSprite;
 
 Texture playLocalTexture;
 Sprite playLocalSprite;
+
 Texture playOnlineTexture;
 Sprite playOnlineSprite;
 

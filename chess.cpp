@@ -62,6 +62,7 @@ int main()
 					else if (playOnlineSprite.getGlobalBounds().contains(translatedPosition))
 					{
 						mode = CHOOSE_ONLINE_MODE;
+						resetGame();
 					}
 				}
 				// if you are in the game, update it every time you click and change to game_over mode if the game ended (gamestate != 0)
@@ -77,7 +78,72 @@ int main()
 				// if you are on the game_over screen and click, change the mode to menu
 				else if (mode == GAME_OVER)
 				{
-					mode = MENU;
+					Vector2i mousePosition = sf::Mouse::getPosition(window);
+					Vector2f translatedPosition = window.mapPixelToCoords(mousePosition);
+					if (playAgainSprite.getGlobalBounds().contains(translatedPosition))
+					{
+						if (playOnline)
+						{
+							Packet packet;
+
+							Uint8 status;
+
+							if (youAreHost)
+							{
+								hostReady = !hostReady;
+
+								status = hostReady ? 2 : 3;
+
+								string message = hostReady ? "Host ready send." : "Host not ready send.";
+								cout << message << endl;
+							}
+							else
+							{
+								clientReady = !clientReady;
+
+								status = clientReady ? 2 : 3;
+
+								string message = clientReady ? "Client ready send." : "Client not ready send.";
+								cout << message << endl;
+							}
+
+							packet << status;
+
+							socket.send(packet);
+						}
+
+						if (!playOnline || (playOnline && hostReady && clientReady))
+						{
+							mode = GAME;
+							resetGame();
+							hostReady = false;
+							clientReady = false;
+						}
+					}
+					else if (backSprite.getGlobalBounds().contains(translatedPosition))
+					{
+						mode = MENU;
+
+						if (playOnline)
+						{
+							Packet packet;
+
+							Uint8 status;
+							status = 4;
+
+							packet << status;
+
+							socket.send(packet);
+
+							socket.disconnect();
+							socket.setBlocking(true);
+							playOnline = false;
+
+							cout << "Disconnect send." << endl;
+
+							window.setTitle("Chess");
+						}
+					}
 				}
 				// if you have to choose the online mode
 				else if (mode == CHOOSE_ONLINE_MODE)
@@ -97,6 +163,10 @@ int main()
 							mode = GAME;
 							playOnline = true;
 							youAreHost = true;
+
+							window.setTitle("Chess - Host");
+
+							listener.close();
 						}
 						else
 						{
@@ -114,6 +184,8 @@ int main()
 							mode = GAME;
 							playOnline = true;
 							youAreHost = false;
+
+							window.setTitle("Chess - Client");
 						}
 						else
 						{
@@ -130,46 +202,101 @@ int main()
 			// receive a message from the client
 			if (socket.receive(packetReceive) == Socket::Done)
 			{
-				for (int x = 0; x < 8; x++)
+				Uint8 status;
+
+				packetReceive >> status;
+
+				if (status == 1)
 				{
-					for (int y = 0; y < 8; y++)
+					for (int x = 0; x < 8; x++)
 					{
-						packetReceive >> pieces[y][x];
+						for (int y = 0; y < 8; y++)
+						{
+							packetReceive >> pieces[y][x];
+						}
+					}
+
+					packetReceive >> whiteEnPassant >> blackEnPassant;
+
+					for (int x = 0; x < 8; x++)
+					{
+						for (int y = 0; y < 8; y++)
+						{
+							packetReceive >> piecesByPawnPromotion[y][x];
+						}
+					}
+
+					// when you are host, you are the one to move next and otherwise, the client (black) is to move
+					whiteToMove = youAreHost;
+
+					// update the list of beaten pieces
+					updateBeatenPieces();
+
+					// check for checkmate and stalemate, to end the game
+					if (isCheckmate())
+					{
+						gameState = whiteToMove ? 2 : 1;
+					}
+					else if (isStalemate())
+					{
+						gameState = 3;
+					}
+
+					if (gameState != 0)
+					{
+						mode = GAME_OVER;
+					}
+
+					cout << "Pieces received." << endl;
+				}
+				else if (status == 2)
+				{
+					if (youAreHost)
+					{
+						clientReady = true;
+
+						cout << "Client ready received." << endl;
+					}
+					else
+					{
+						hostReady = true;
+
+						cout << "Host ready received." << endl;
+					}
+
+					if (playOnline && hostReady && clientReady)
+					{
+						mode = GAME;
+						resetGame();
+						hostReady = false;
+						clientReady = false;
 					}
 				}
-
-				packetReceive >> whiteEnPassant >> blackEnPassant;
-
-				for (int x = 0; x < 8; x++)
+				else if (status == 3)
 				{
-					for (int y = 0; y < 8; y++)
+					if (youAreHost)
 					{
-						packetReceive >> piecesByPawnPromotion[y][x];
+						clientReady = false;
+
+						cout << "Client not ready received." << endl;
+					}
+					else
+					{
+						hostReady = false;
+
+						cout << "Host not ready received." << endl;
 					}
 				}
-
-				// when you are host, you are the one to move next and otherwise, the client (black) is to move
-				whiteToMove = youAreHost;
-
-				// update the list of beaten pieces
-				updateBeatenPieces();
-
-				// check for checkmate and stalemate, to end the game
-				if (isCheckmate())
+				else if (status == 4)
 				{
-					gameState = whiteToMove ? 2 : 1;
-				}
-				else if (isStalemate())
-				{
-					gameState = 3;
-				}
+					socket.disconnect();
+					socket.setBlocking(true);
+					playOnline = false;
+					mode = MENU;
 
-				if (gameState != 0)
-				{
-					mode = GAME_OVER;
+					cout << "Disconnect received." << endl;
+					window.setTitle("Chess");
 				}
-
-				cout << "Pieces were received." << endl;
 			}
 		}
 

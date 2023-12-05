@@ -720,6 +720,11 @@ void updateGame(Event event, RenderWindow &window)
 						if (playOnline)
 						{
 							Packet packet;
+							
+							Uint8 status = 1;
+
+							packet << status;
+
 							for (int x = 0; x < 8; x++)
 							{
 								for (int y = 0; y < 8; y++)
@@ -740,7 +745,7 @@ void updateGame(Event event, RenderWindow &window)
 
 							socket.send(packet);
 
-							cout << "Pieces were send." << endl;
+							cout << "Pieces send." << endl;
 						}
 					}
 				}
@@ -766,6 +771,11 @@ void updateGame(Event event, RenderWindow &window)
 						if (playOnline)
 						{
 							Packet packet;
+
+							Uint8 status = 1;
+							
+							packet << status;
+
 							for (int x = 0; x < 8; x++)
 							{
 								for (int y = 0; y < 8; y++)
@@ -786,7 +796,7 @@ void updateGame(Event event, RenderWindow &window)
 
 							socket.send(packet);
 
-							cout << "Pieces were send." << endl;
+							cout << "Pieces send." << endl;
 						}
 					}
 				}
@@ -983,6 +993,11 @@ void updateGame(Event event, RenderWindow &window)
 						if (playOnline && ((youAreHost && !whitePawnPromoted) || (!youAreHost && !blackPawnPromoted)))
 						{
 							Packet packet;
+
+							Uint8 status = 1;
+							
+							packet << status;
+
 							for (int x = 0; x < 8; x++)
 							{
 								for (int y = 0; y < 8; y++)
@@ -1003,7 +1018,7 @@ void updateGame(Event event, RenderWindow &window)
 
 							socket.send(packet);
 
-							cout << "Pieces were send." << endl;
+							cout << "Pieces send." << endl;
 						}
 
 						// change player turn
