@@ -169,7 +169,7 @@ int main()
 					mode = GAME_OVER;
 				}
 
-				cout << "Pieces were recieved." << endl;
+				cout << "Pieces were received." << endl;
 			}
 		}
 
