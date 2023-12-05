@@ -21,6 +21,8 @@ int main()
 	loadFonts();
 
 	// load all textures
+	loadMainTextures();
+
 	loadMenuTextures();
 
 	loadChooseOnlineModeTextures();
@@ -62,7 +64,6 @@ int main()
 					else if (playOnlineSprite.getGlobalBounds().contains(translatedPosition))
 					{
 						mode = CHOOSE_ONLINE_MODE;
-						resetGame();
 					}
 				}
 				// if you are in the game, update it every time you click and change to game_over mode if the game ended (gamestate != 0)
@@ -161,6 +162,8 @@ int main()
 							socket.setBlocking(false);
 
 							mode = GAME;
+							resetGame();
+
 							playOnline = true;
 							youAreHost = true;
 
@@ -182,6 +185,8 @@ int main()
 							socket.setBlocking(false);
 
 							mode = GAME;
+							resetGame();
+
 							playOnline = true;
 							youAreHost = false;
 
@@ -191,6 +196,10 @@ int main()
 						{
 							cout << "Failed to connect to host." << endl;
 						}		
+					}
+					else if (backSprite.getGlobalBounds().contains(translatedPosition))
+					{
+						mode = MENU;
 					}
 				}
 			}

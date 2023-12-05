@@ -54,6 +54,8 @@ void drawChooseOnlineMode(RenderWindow &window)
     window.draw(createGameSprite);
     window.draw(joinGameSprite);
 
+    window.draw(backSprite);
+
     /*// draw the text
     if (creatingGame || joiningGame)
     {

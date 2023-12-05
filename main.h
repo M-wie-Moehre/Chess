@@ -37,6 +37,11 @@ TcpSocket socket; // the socket, for the communication between the computers
 
 Font textFont;
 
+Texture backTexture;
+
+Sprite backSprite;
+
+
 // main functions
 
 void loadFonts()
@@ -46,6 +51,19 @@ void loadFonts()
 		cout << "Couldn't load text font \"fonts\\font.ttf\". Exiting.." << endl;
 		return;
 	}
+}
+
+void loadMainTextures()
+{
+	if (!backTexture.loadFromFile("textures\\back.png"))
+    {
+        cout << "Couldn't load texture \"textures\\back.png\". Exiting.." << endl;
+        return;
+    }
+
+    backSprite.setTexture(backTexture);
+    backSprite.setScale(pixelScale * 0.75, pixelScale * 0.75); // one pixel on the images is equal to five pixel on the window
+    backSprite.setPosition(windowSizeX / 2 - (112 * pixelScale * 0.75) / 2, windowSizeY * 0.75 + 10);
 }
 
 #endif
