@@ -18,9 +18,19 @@ Sprite createGameSprite;
 Texture joinGameTexture;
 Sprite joinGameSprite;
 
-//Text connectionStatusText;
+Text ipAdressText;
+
+string ipAdressInput = "";
+Text ipAdressInputText;
 
 // choose online mode functions
+
+// logic functions
+void updateChooseOnlineMode()
+{
+    string yourIP = "Your IP address: " + IpAddress::getLocalAddress().toString();
+    ipAdressText.setString(yourIP);
+}
 
 // function to load all texures required for the choose online mode menu
 void loadChooseOnlineModeTextures()
@@ -33,7 +43,7 @@ void loadChooseOnlineModeTextures()
 
     createGameSprite.setTexture(createGameTexture);
     createGameSprite.setScale(pixelScale * 0.75, pixelScale * 0.75);
-    createGameSprite.setPosition(windowSizeX / 2 - (128 * pixelScale * 0.75) / 2, windowSizeY * 0.25 - 32 * pixelScale * 0.75 - 10);
+    createGameSprite.setPosition(windowSizeX / 2 - (128 * pixelScale * 0.75) / 2, windowSizeY * 0.175);
 
     if (!joinGameTexture.loadFromFile("textures\\join_game.png"))
     {
@@ -43,7 +53,7 @@ void loadChooseOnlineModeTextures()
 
     joinGameSprite.setTexture(joinGameTexture);
     joinGameSprite.setScale(pixelScale * 0.75, pixelScale * 0.75);
-    joinGameSprite.setPosition(windowSizeX / 2 - (128 * pixelScale * 0.75) / 2, windowSizeY * 0.25 + 10);
+    joinGameSprite.setPosition(windowSizeX / 2 - (128 * pixelScale * 0.75) / 2, windowSizeY * 0.475);
 }
 
 // drawing functions
@@ -56,23 +66,28 @@ void drawChooseOnlineMode(RenderWindow &window)
 
     window.draw(backSprite);
 
-    /*// draw the text
-    if (creatingGame || joiningGame)
-    {
-        connectionStatusText.setFont(textFont);
-        if (creatingGame)
-        {
-            connectionStatusText.setString("  Waiting for someone to join ...  ");
-        }
-        else if (joiningGame)
-        {
-            connectionStatusText.setString("Trying to join an existing game ...");
-        }
-        connectionStatusText.setFillColor(Color(140, 140, 140));
-        connectionStatusText.setPosition(Vector2f(windowSizeX * 0.5 - 220, windowSizeY * 0.75));
+    // draw the text
+    ipAdressText.setPosition(Vector2f(windowSizeX * 0.5 - 220, windowSizeY * 0.1));
+    ipAdressText.setFillColor(Color(140, 140, 140));
+    ipAdressText.setFont(textFont);
 
-        window.draw(connectionStatusText);
-    }*/
+    window.draw(ipAdressText);
+
+
+    if (!ipAdressInput.empty())
+    {
+        ipAdressInputText.setString(ipAdressInput);
+    }
+    else
+    {
+        ipAdressInputText.setString("Type to enter IP address to connect to.");
+    }
+
+    ipAdressInputText.setPosition(Vector2f(windowSizeX * 0.5 - 280, windowSizeY * 0.4));
+    ipAdressInputText.setFillColor(Color(140, 140, 140));
+    ipAdressInputText.setFont(textFont);
+
+    window.draw(ipAdressInputText);
 }
 
 #endif

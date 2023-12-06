@@ -76,6 +76,7 @@ int main()
 					else if (playOnlineSprite.getGlobalBounds().contains(translatedPosition))
 					{
 						mode = CHOOSE_ONLINE_MODE;
+						updateChooseOnlineMode();
 					}
 				}
 				// if you are in the game, update it every time you click and change to game_over mode if the game ended (gamestate != 0)
@@ -190,28 +191,62 @@ int main()
 					}
 					else if (joinGameSprite.getGlobalBounds().contains(translatedPosition))
 					{
-						if (socket.connect("192.168.178.62", 55001) == Socket::Done)
+						IpAddress ipAdress(ipAdressInput);
+
+						cout << ipAdress << endl;
+						
+						if (ipAdress != IpAddress::None)
 						{
-							cout << "Connected to host: " << "192.168.178.62" << endl;
+							if (socket.connect(ipAdress, 55001) == Socket::Done)
+							{
+								cout << "Connected to host: " << ipAdress << endl;
 
-							socket.setBlocking(false);
+								socket.setBlocking(false);
 
-							mode = GAME;
-							resetGame();
+								mode = GAME;
+								resetGame();
 
-							playOnline = true;
-							youAreHost = false;
+								playOnline = true;
+								youAreHost = false;
 
-							window.setTitle("Chess - Client");
+								window.setTitle("Chess - Client");
+							}
+							else
+							{
+								cout << "Failed to connect to host." << endl;
+							}
 						}
 						else
 						{
-							cout << "Failed to connect to host." << endl;
-						}		
+							cout << "Invalid IP address entered." << endl;
+						}
 					}
 					else if (backSprite.getGlobalBounds().contains(translatedPosition))
 					{
 						mode = MENU;
+					}
+				}
+			}
+			else if (event.type == Event::TextEntered)
+			{
+				if (mode == CHOOSE_ONLINE_MODE)
+				{
+					if (isprint(event.text.unicode))
+					{
+                    	ipAdressInput += event.text.unicode;
+					}
+				}
+			}
+			else if (event.type == Event::KeyPressed)
+			{
+				if (event.key.code == sf::Keyboard::BackSpace)
+				{
+					if (mode == CHOOSE_ONLINE_MODE)
+					{
+						if (!ipAdressInput.empty())
+						{
+							ipAdressInput.pop_back();
+						}
 					}
 				}
 			}
