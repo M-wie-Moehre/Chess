@@ -23,13 +23,15 @@ Text ipAdressText;
 string ipAdressInput = "";
 Text ipAdressInputText;
 
+Text creatingGameText;
+
 // choose online mode functions
 
 // logic functions
 void updateChooseOnlineMode()
 {
-    string yourIP = "Your IP address: " + IpAddress::getLocalAddress().toString();
-    ipAdressText.setString(yourIP);
+    string yourIp = "Your IP address: " + IpAddress::getLocalAddress().toString();
+    ipAdressText.setString(yourIp);
 }
 
 // function to load all texures required for the choose online mode menu
@@ -88,6 +90,18 @@ void drawChooseOnlineMode(RenderWindow &window)
     ipAdressInputText.setFont(textFont);
 
     window.draw(ipAdressInputText);
+
+    // draw the text
+    if (creatingGame)
+    {
+        creatingGameText.setFont(textFont);
+        creatingGameText.setString("Wating for someone to join ...");
+
+        creatingGameText.setFillColor(Color(140, 140, 140));
+        creatingGameText.setPosition(Vector2f(windowSizeX / 2 - 200, windowSizeY * 0.9));
+
+        window.draw(creatingGameText);
+    }
 }
 
 #endif

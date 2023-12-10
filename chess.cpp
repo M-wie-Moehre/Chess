@@ -166,40 +166,20 @@ int main()
 					Vector2f translatedPosition = window.mapPixelToCoords(mousePosition);
 					if (createGameSprite.getGlobalBounds().contains(translatedPosition))
 					{
-						TcpListener listener;
 						listener.listen(55001);
+						listener.setBlocking(false);
 
-						if (listener.accept(socket) == Socket::Done)
-						{
-							cout << "New client connected: " << socket.getRemoteAddress() << endl;
-							socket.setBlocking(false);
-
-							mode = GAME;
-							resetGame();
-
-							playOnline = true;
-							youAreHost = true;
-
-							window.setTitle("Chess - Host");
-
-							listener.close();
-						}
-						else
-						{
-							cout << "Failed to connect to client." << endl;
-						}
+						creatingGame = !creatingGame;
 					}
 					else if (joinGameSprite.getGlobalBounds().contains(translatedPosition))
 					{
 						IpAddress ipAdress(ipAdressInput);
-
-						cout << ipAdress << endl;
 						
 						if (ipAdress != IpAddress::None)
 						{
-							if (socket.connect(ipAdress, 55001) == Socket::Done)
+							if (socket.connect(ipAdress, 55001, milliseconds(1000)) == Socket::Done)
 							{
-								cout << "Connected to host: " << ipAdress << endl;
+								cout << "Connected to host: " << ipAdress << "." << endl;
 
 								socket.setBlocking(false);
 
@@ -249,6 +229,27 @@ int main()
 						}
 					}
 				}
+			}
+		}
+		
+		if(creatingGame)
+		{
+			if (listener.accept(socket) == Socket::Done)
+			{
+				cout << "New client connected: " << socket.getRemoteAddress() << "." << endl;
+				socket.setBlocking(false);
+
+				mode = GAME;
+				resetGame();
+
+				playOnline = true;
+				youAreHost = true;
+
+				window.setTitle("Chess - Host");
+
+				listener.close();
+
+				creatingGame = false;
 			}
 		}
 

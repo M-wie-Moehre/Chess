@@ -35,6 +35,9 @@ bool clientReady = false;
 
 TcpSocket socket; // the socket, for the communication between the computers
 
+TcpListener listener;
+bool creatingGame = false;
+
 Font textFont;
 
 Texture backTexture;
