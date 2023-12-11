@@ -50,7 +50,7 @@ bool isIpAddressValid()
         }
         else if (ipAdressInputString[i] == '.')
         {
-            if (tempIpAddress <= 0 || tempIpAddress >= 255)
+            if (tempIpAddress < 0 || tempIpAddress > 255)
             {
                 return false;
             }
