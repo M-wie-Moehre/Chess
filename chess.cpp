@@ -173,13 +173,13 @@ int main()
 					}
 					else if (joinGameSprite.getGlobalBounds().contains(translatedPosition))
 					{
-						IpAddress ipAdress(ipAdressInput);
-						
-						if (ipAdress != IpAddress::None)
+						if (isIpAddressValid())
 						{
-							if (socket.connect(ipAdress, 55001, milliseconds(1000)) == Socket::Done)
+							IpAddress ipAdressInput(ipAdressInputString);
+
+							if (socket.connect(ipAdressInput, 55001, milliseconds(1000)) == Socket::Done)
 							{
-								cout << "Connected to host: " << ipAdress << "." << endl;
+								cout << "Connected to host: " << ipAdressInput << "." << endl;
 
 								socket.setBlocking(false);
 
@@ -198,12 +198,22 @@ int main()
 						}
 						else
 						{
-							cout << "Invalid IP address entered." << endl;
+							cout << "Entered invalid IP address." << endl;
 						}
 					}
 					else if (backSprite.getGlobalBounds().contains(translatedPosition))
 					{
 						mode = MENU;
+					}
+					else if (ipAdressText.getGlobalBounds().contains(translatedPosition))
+					{
+						Clipboard::setString(ipAdressString);
+						cout << "Copied IP address." << endl;
+					}
+					else if (ipAdressInputText.getGlobalBounds().contains(translatedPosition))
+					{
+						ipAdressInputString = Clipboard::getString();
+						cout << "Pasted IP address." << endl;
 					}
 				}
 			}
@@ -213,7 +223,7 @@ int main()
 				{
 					if (isprint(event.text.unicode))
 					{
-                    	ipAdressInput += event.text.unicode;
+                    	ipAdressInputString += event.text.unicode;
 					}
 				}
 			}
@@ -223,9 +233,9 @@ int main()
 				{
 					if (mode == CHOOSE_ONLINE_MODE)
 					{
-						if (!ipAdressInput.empty())
+						if (!ipAdressInputString.empty())
 						{
-							ipAdressInput.pop_back();
+							ipAdressInputString.pop_back();
 						}
 					}
 				}

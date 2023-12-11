@@ -18,9 +18,10 @@ Sprite createGameSprite;
 Texture joinGameTexture;
 Sprite joinGameSprite;
 
+string ipAdressString;
 Text ipAdressText;
 
-string ipAdressInput = "";
+string ipAdressInputString = "";
 Text ipAdressInputText;
 
 Text creatingGameText;
@@ -30,8 +31,54 @@ Text creatingGameText;
 // logic functions
 void updateChooseOnlineMode()
 {
-    string yourIp = "Your IP address: " + IpAddress::getLocalAddress().toString();
-    ipAdressText.setString(yourIp);
+    ipAdressString = IpAddress::getLocalAddress().toString();
+    ipAdressText.setString("Your IP address [click to copy]: " + ipAdressString);
+}
+
+bool isIpAddressValid()
+{
+    int tempIpAddress = 0;
+    int numberCount = 0;
+
+    for (int i = 0; i < ipAdressInputString.size(); i++)
+    {
+        if (isdigit(ipAdressInputString[i]))
+        {
+            tempIpAddress = tempIpAddress * 10;
+
+            tempIpAddress += ipAdressInputString[i] - '0';
+        }
+        else if (ipAdressInputString[i] == '.')
+        {
+            if (tempIpAddress <= 0 || tempIpAddress >= 255)
+            {
+                return false;
+            }
+            tempIpAddress = 0;
+            numberCount += 1;
+        }
+        else
+        {
+            return false;
+        }
+
+        if (numberCount > 3)
+        {
+            return false;
+        }
+    }
+
+    if (tempIpAddress <= 0 || tempIpAddress >= 255)
+    {
+        return false;
+    }
+
+    if (numberCount != 3)
+    {
+        return false;
+    }
+
+    return true;
 }
 
 // function to load all texures required for the choose online mode menu
@@ -69,23 +116,24 @@ void drawChooseOnlineMode(RenderWindow &window)
     window.draw(backSprite);
 
     // draw the text
-    ipAdressText.setPosition(Vector2f(windowSizeX * 0.5 - 220, windowSizeY * 0.1));
+    ipAdressText.setPosition(Vector2f(windowSizeX * 0.5 - 320, windowSizeY * 0.1));
     ipAdressText.setFillColor(Color(140, 140, 140));
     ipAdressText.setFont(textFont);
 
     window.draw(ipAdressText);
 
 
-    if (!ipAdressInput.empty())
+    if (!ipAdressInputString.empty())
     {
-        ipAdressInputText.setString(ipAdressInput);
+        ipAdressInputText.setString(ipAdressInputString);
+        ipAdressInputText.setPosition(Vector2f(windowSizeX * 0.5 - 80, windowSizeY * 0.4));
     }
     else
     {
-        ipAdressInputText.setString("Type to enter IP address to connect to.");
+        ipAdressInputText.setString("Enter IP address to connect to [click to paste].");
+        ipAdressInputText.setPosition(Vector2f(windowSizeX * 0.5 - 340, windowSizeY * 0.4));
     }
 
-    ipAdressInputText.setPosition(Vector2f(windowSizeX * 0.5 - 280, windowSizeY * 0.4));
     ipAdressInputText.setFillColor(Color(140, 140, 140));
     ipAdressInputText.setFont(textFont);
 

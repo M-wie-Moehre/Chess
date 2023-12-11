@@ -1345,7 +1345,7 @@ void drawPawnPromotionOptions(RenderWindow &window)
             for (int i = 0; i < 4; i++)
             {
 				// draw the piece
-                Vector2i position = {boardPosition.x + 7 * pixelScale + (mousePosition.x - 1.5 + i) * 16 * pixelScale, boardPosition.y + 3 * pixelScale};
+                Vector2i position = {boardPosition.x + 7 * pixelScale + (mousePosition.x - (int)(1.5 + i)) * 16 * pixelScale, boardPosition.y + 3 * pixelScale};
 
                 drawPiece(window, i + 1, position);
             }
@@ -1356,7 +1356,7 @@ void drawPawnPromotionOptions(RenderWindow &window)
             for (int i = 0; i < 4; i++)
             {
 				// draw the piece
-                Vector2i position = {boardPosition.x + 7 * pixelScale + (mousePosition.x - 1.5 + i) * 16 * pixelScale, boardPosition.y + 3 * pixelScale + 7 * 16 * pixelScale};
+                Vector2i position = {boardPosition.x + 7 * pixelScale + (mousePosition.x - (int)(1.5 + i)) * 16 * pixelScale, boardPosition.y + 3 * pixelScale + 7 * 16 * pixelScale};
 
                 drawPiece(window, i + 7, position);
             }
