@@ -585,10 +585,11 @@ bool isStalemate()
 	// check if the king isn't in check, because this is necessary for stalemate
 	if (!isKingInCheck())
 	{
-		// if every player only has a king an either one rook or bishop, the game ends in stalemate
-		if (beatenPieces[0] == 8 && beatenPieces[1] == 2 && ((beatenPieces[2] == 2 && beatenPieces[3] == 1) || (beatenPieces[2] == 1 && beatenPieces[3] == 2) || (beatenPieces[2] == 2 && beatenPieces[3] == 2)) 
-		&& beatenPieces[4] == 1 
-		&& beatenPieces[6] == 8 && beatenPieces[7] == 2 && ((beatenPieces[8] == 2 && beatenPieces[9] == 1) || (beatenPieces[8] == 1 && beatenPieces[9] == 2) || (beatenPieces[8] == 2 && beatenPieces[9] == 2)) && beatenPieces[10] == 1)
+		// if every player only has a king and either one rook or one bishop, the game ends in stalemate
+		if (beatenPieces[0] == 8 && beatenPieces[1] == 2 && ((beatenPieces[2] == 2 && beatenPieces[3] == 1) || (beatenPieces[2] == 1 && beatenPieces[3] == 2) ||
+		(beatenPieces[2] == 2 && beatenPieces[3] == 2)) && beatenPieces[4] == 1 
+		&& beatenPieces[6] == 8 && beatenPieces[7] == 2 && ((beatenPieces[8] == 2 && beatenPieces[9] == 1) || (beatenPieces[8] == 1 && beatenPieces[9] == 2) || 
+		(beatenPieces[8] == 2 && beatenPieces[9] == 2)) && beatenPieces[10] == 1)
 		{
 			return true;
 		}
@@ -688,272 +689,371 @@ void updateBeatenPieces()
 // main function to update the game, pieces get moved here and all previous function get called here
 void updateGame(Event event, RenderWindow &window)
 {
-	// if the game has ended and for some reason this function still gets called, simply return
-	if (gameState != 0)
+	if (!playOnline || (playOnline && ((youAreHost && (whiteToMove || whitePawnPromoted)) || (!youAreHost && (!whiteToMove || blackPawnPromoted)))))
 	{
-		return;
+		// if the game has ended and for some reason this function still gets called, simply return
+		if (gameState != 0)
+		{
+			return;
+		}
+		
+		// if the left mousebutton got pressed
+		if (event.mouseButton.button == Mouse::Left)
+		{
+			// if a white pawn promoted, the player first has to select the piece he want's, before anyone can move
+			if (whitePawnPromoted)
+			{
+				// go trough the positions of the four pieces, that you can choose
+				for (int x = 0; x < 4; x++)
+				{
+					// if the player clicked on one
+					if (Mouse::getPosition(window).y > boardPosition.y + 3 * pixelScale && Mouse::getPosition(window).y < boardPosition.y + 3 * pixelScale + 16 * pixelScale && 
+					Mouse::getPosition(window).x > boardPosition.x + 3 * pixelScale + (mousePosition.x - 1.5 + x) * 16 * pixelScale &&
+					Mouse::getPosition(window).x < boardPosition.x + 3 * pixelScale + (mousePosition.x - 0.5 + x) * 16 * pixelScale)
+					{
+						// add the piece to the field
+						pieces[mousePosition.y][mousePosition.x] = x + 2;
+
+						whitePawnPromoted = false;
+
+						// send over the pieces, to update the board for the other person
+						if (playOnline)
+						{
+							Packet packet;
+							
+							Uint8 status = 1;
+
+							packet << status;
+
+							for (int x = 0; x < 8; x++)
+							{
+								for (int y = 0; y < 8; y++)
+								{
+									packet << pieces[y][x];
+								}
+							}
+
+							packet << whiteEnPassant << blackEnPassant;
+
+							for (int x = 0; x < 8; x++)
+							{
+								for (int y = 0; y < 8; y++)
+								{
+									packet << piecesByPawnPromotion[y][x];
+								}
+							}
+
+							socket.send(packet);
+
+							cout << "Pieces send." << endl;
+						}
+					}
+				}
+			}
+			// if a black pawn promoted, the player first has to select the piece he want's, before anyone can move
+			else if (blackPawnPromoted)
+			{
+				// go trough the positions of the four pieces, that you can choose
+				for (int x = 0; x < 4; x++)
+				{
+					// if the player clicked on one
+					if (Mouse::getPosition(window).y > boardPosition.y + 3 * pixelScale + 7 * 16 * pixelScale && Mouse::getPosition(window).y < boardPosition.y + 3 * pixelScale + 16 * pixelScale + 8 * 16 * pixelScale && 
+					Mouse::getPosition(window).x > boardPosition.x + 3 * pixelScale + (mousePosition.x - 1.5 + x) * 16 * pixelScale &&
+					Mouse::getPosition(window).x < boardPosition.x + 3 * pixelScale + (mousePosition.x - 0.5 + x) * 16 * pixelScale)
+					{
+						// add the piece to the field
+						pieces[mousePosition.y][mousePosition.x] = x + 8;
+						pieces[pickedUpPiece.y][pickedUpPiece.x] = 0;
+
+						blackPawnPromoted = false;
+
+						// send over the pieces, to update the board for the other person
+						if (playOnline)
+						{
+							Packet packet;
+
+							Uint8 status = 1;
+							
+							packet << status;
+
+							for (int x = 0; x < 8; x++)
+							{
+								for (int y = 0; y < 8; y++)
+								{
+									packet << pieces[y][x];
+								}
+							}
+
+							packet << whiteEnPassant << blackEnPassant;
+
+							for (int x = 0; x < 8; x++)
+							{
+								for (int y = 0; y < 8; y++)
+								{
+									packet << piecesByPawnPromotion[y][x];
+								}
+							}
+
+							socket.send(packet);
+
+							cout << "Pieces send." << endl;
+						}
+					}
+				}
+			}
+			// if the mouse isn't on the board
+			else if (Mouse::getPosition(window).x - boardPosition.x - 3 * pixelScale < 0 || Mouse::getPosition(window).y - boardPosition.y - 3 * 
+			pixelScale < 0 || Mouse::getPosition(window).x - boardPosition.x - 3 * pixelScale > 16 * 8 * pixelScale || 
+			Mouse::getPosition(window).y - boardPosition.y - 3 * pixelScale > 16 * 8 * pixelScale)
+			{
+				mousePosition = {-1, -1};
+
+				// put piece back, when one is picked up
+				if (piecePickedUp)
+				{
+					pickedUpPiece = {-1, -1};
+					piecePickedUp =  false;
+				}
+			}
+			// if the mouse is on the board
+			else
+			{						
+				// calculate mouse position on the board
+				mousePosition = {(Mouse::getPosition(window).x - boardPosition.x - 3 * pixelScale) / (16 * pixelScale), 
+				(Mouse::getPosition(window).y - boardPosition.y - 3 * pixelScale) / (16 * pixelScale)};
+
+				// if no piece is picked up and at the mouse position is a piece
+				if (!piecePickedUp && pieces[mousePosition.y][mousePosition.x] != 0)
+				{
+					// make sure the player can only pick up his pieces
+					// if white is to move and the piece is white or black is to move and the piece is black, pick the piece up
+					if ((whiteToMove && pieces[mousePosition.y][mousePosition.x] - 1 >= 0 && pieces[mousePosition.y][mousePosition.x] - 1 <= 5) ||
+					(!whiteToMove && pieces[mousePosition.y][mousePosition.x] - 1 >= 6 && pieces[mousePosition.y][mousePosition.x] - 1 <= 11))
+					{
+						pickedUpPiece = mousePosition;
+						piecePickedUp = true;
+						// update the positions, the current picked up piece can be put
+						updateValidPiecePositions(pickedUpPiece);
+					}
+				}
+				// if you place the picked up piece on a valid field
+				else if (piecePickedUp && validPiecePositions[mousePosition.y][mousePosition.x])
+				{
+					// if you put the piece not back at the same spot
+					if (pickedUpPiece != mousePosition)
+					{
+						// if a white pawn is moved two fields forward, enable en passant for it
+						if (pieces[pickedUpPiece.y][pickedUpPiece.x] - 1 == 0 && pickedUpPiece.y - 2 == mousePosition.y)
+						{
+							whiteEnPassant = pickedUpPiece.x;
+						}
+						// if a black pawn is moved two fields forward (globally backwards), enable en passant for it
+						else if (pieces[pickedUpPiece.y][pickedUpPiece.x] - 1 == 6 && pickedUpPiece.y + 2 == mousePosition.y)
+						{
+							blackEnPassant = pickedUpPiece.x;
+						}
+						// if something else is moved, remove the en passant option
+						else if (whiteToMove)
+						{
+							whiteEnPassant = -1;
+						}
+						else if (!whiteToMove)
+						{
+							blackEnPassant = -1;
+						}
+
+						// if a piece, that was created using pawn promotion, is moved, the position in the variable "piecesByPawnPromotion" needs to be updated
+						if (piecesByPawnPromotion[pickedUpPiece.y][pickedUpPiece.x])
+						{
+							piecesByPawnPromotion[pickedUpPiece.y][pickedUpPiece.x] = false;
+							piecesByPawnPromotion[mousePosition.y][mousePosition.x] = true;
+						}
+
+						// if en passant is used from white pawn
+						if (pieces[pickedUpPiece.y][pickedUpPiece.x] - 1 == 0 && pickedUpPiece.y == 3 && mousePosition.x == blackEnPassant)
+						{
+							// move the pawn
+							pieces[mousePosition.y][mousePosition.x] = pieces[pickedUpPiece.y][pickedUpPiece.x];
+							pieces[pickedUpPiece.y][pickedUpPiece.x] = 0;
+							// remove the pawn beaten by en passant
+							pieces[mousePosition.y + 1][mousePosition.x] = 0;
+						}
+						// if en passant is used from black pawn
+						else if (pieces[pickedUpPiece.y][pickedUpPiece.x] - 1 == 6 && pickedUpPiece.y == 4 && mousePosition.x == whiteEnPassant)
+						{
+							// move the pawn
+							pieces[mousePosition.y][mousePosition.x] = pieces[pickedUpPiece.y][pickedUpPiece.x];
+							pieces[pickedUpPiece.y][pickedUpPiece.x] = 0;
+							// remove the pawn beaten by en passant
+							pieces[mousePosition.y - 1][mousePosition.x] = 0;
+						}
+						// if white king castles to the left, we need to move the rook too
+						else if (pieces[pickedUpPiece.y][pickedUpPiece.x] - 1 == 5 && mousePosition == Vector2i{1, 7} && whiteCastlingLeft)
+						{
+							// move the king
+							pieces[mousePosition.y][mousePosition.x] = pieces[pickedUpPiece.y][pickedUpPiece.x];
+							pieces[pickedUpPiece.y][pickedUpPiece.x] = 0;
+							// move the rook
+							pieces[7][2] = pieces[7][0];
+							pieces[7][0] = 0;
+						}
+						// if white king castles to the right, we need to move the rook too
+						else if (pieces[pickedUpPiece.y][pickedUpPiece.x] - 1 == 5 && mousePosition == Vector2i{6, 7} && whiteCastlingRight)
+						{
+							// move the king
+							pieces[mousePosition.y][mousePosition.x] = pieces[pickedUpPiece.y][pickedUpPiece.x];
+							pieces[pickedUpPiece.y][pickedUpPiece.x] = 0;
+							// move the rook
+							pieces[7][5] = pieces[7][7];
+							pieces[7][7] = 0;
+						}
+						// if black king castles to the left, we need to move the rook too
+						else if (pieces[pickedUpPiece.y][pickedUpPiece.x] - 1 == 11 && mousePosition == Vector2i{1, 0} && blackCastlingLeft)
+						{
+							// move the king
+							pieces[mousePosition.y][mousePosition.x] = pieces[pickedUpPiece.y][pickedUpPiece.x];
+							pieces[pickedUpPiece.y][pickedUpPiece.x] = 0;
+							// move the rook
+							pieces[0][2] = pieces[0][0];
+							pieces[0][0] = 0;
+						}
+						// if black king castles to the right, we need to move the rook too
+						else if (pieces[pickedUpPiece.y][pickedUpPiece.x] - 1 == 11 && mousePosition == Vector2i{6, 0} && blackCastlingRight)
+						{
+							// move the king
+							pieces[mousePosition.y][mousePosition.x] = pieces[pickedUpPiece.y][pickedUpPiece.x];
+							pieces[pickedUpPiece.y][pickedUpPiece.x] = 0;
+							// move the rook
+							pieces[0][5] = pieces[0][7];
+							pieces[0][7] = 0;
+						}
+						// if a white pawn is promoted
+						else if (pieces[pickedUpPiece.y][pickedUpPiece.x] - 1 == 0 && mousePosition.y == 0)
+						{
+							// move the pawn
+							pieces[mousePosition.y][mousePosition.x] = 1;
+							pieces[pickedUpPiece.y][pickedUpPiece.x] = 0;
+
+							// enable the option to select a piece
+							piecesByPawnPromotion[mousePosition.y][mousePosition.x] = true;
+							whitePawnPromoted = true;
+						}
+						// if a black pawn is promoted
+						else if (pieces[pickedUpPiece.y][pickedUpPiece.x] - 1 == 6 && mousePosition.y == 7)
+						{
+							// move the pawn
+							pieces[mousePosition.y][mousePosition.x] = 7;
+							pieces[pickedUpPiece.y][pickedUpPiece.x] = 0;
+
+							// enable the option to select a piece
+							piecesByPawnPromotion[mousePosition.y][mousePosition.x] = true;
+							blackPawnPromoted = true;
+						}
+						// else if a piece is moved normally
+						else
+						{
+							// switch the pieces (empty <-> pickedUpPiece)
+							pieces[mousePosition.y][mousePosition.x] = pieces[pickedUpPiece.y][pickedUpPiece.x];
+							pieces[pickedUpPiece.y][pickedUpPiece.x] = 0;
+						}
+
+						// check if a rook or the king is moved to determine if the king can still castle
+						// if one of the white rooks moves, only disable castling with this rook
+						if (pieces[0][0] - 1 != 7 && blackCastlingLeft)
+						{
+							blackCastlingLeft = false;
+						}
+						if (pieces[0][7] - 1 != 7 && blackCastlingRight)
+						{
+							blackCastlingRight = false;
+						}
+						if (pieces[7][0] - 1 != 1 && whiteCastlingLeft)
+						{
+							whiteCastlingLeft = false;
+						}
+						if (pieces[7][7] - 1 != 1 && whiteCastlingRight)
+						{
+							whiteCastlingRight = false;
+						}
+
+						// if white king moves, disable castling for white completly
+						if (pieces[0][4] - 1 != 11 && (blackCastlingLeft || blackCastlingRight))
+						{
+							blackCastlingLeft = false;
+							blackCastlingRight = false;
+						}
+						// if black king moves, disable castling for white completly
+						if (pieces[7][4] - 1 != 5 && (whiteCastlingLeft || whiteCastlingRight))
+						{
+							whiteCastlingLeft = false;
+							whiteCastlingRight = false;
+						}
+
+						// send over the pieces, to update the board for the other person
+						if (playOnline && ((youAreHost && !whitePawnPromoted) || (!youAreHost && !blackPawnPromoted)))
+						{
+							Packet packet;
+
+							Uint8 status = 1;
+							
+							packet << status;
+
+							for (int x = 0; x < 8; x++)
+							{
+								for (int y = 0; y < 8; y++)
+								{
+									packet << pieces[y][x];
+								}
+							}
+
+							packet << whiteEnPassant << blackEnPassant;
+
+							for (int x = 0; x < 8; x++)
+							{
+								for (int y = 0; y < 8; y++)
+								{
+									packet << piecesByPawnPromotion[y][x];
+								}
+							}
+
+							socket.send(packet);
+
+							cout << "Pieces send." << endl;
+						}
+
+						// change player turn
+						whiteToMove = !whiteToMove;
+						
+						// update the list of beaten pieces
+						updateBeatenPieces();
+
+						// check for checkmate and stalemate, to end the game
+						if (isCheckmate())
+						{
+							gameState = whiteToMove ? 2 : 1;
+						}
+						else if (isStalemate())
+						{
+							gameState = 3;
+						}
+					}
+
+					// put the piece down
+					pickedUpPiece = {-1, -1};
+					piecePickedUp = false;
+				}
+			}
+		}
+		// if right clicked, put the piece back
+		else if (event.mouseButton.button == Mouse::Right) // when right mouse button is pressed, put piece back
+		{
+			if (piecePickedUp)
+			{
+				pickedUpPiece = {-1, -1};
+				piecePickedUp =  false;
+			}
+		}
 	}
-	
-	// if the left mousebutton got pressed
-    if (event.mouseButton.button == Mouse::Left)
-    {
-		// if a white pawn promoted, the player first has to select the piece he want's, before anyone can move
-        if (whitePawnPromoted)
-        {
-			// go trough the positions of the four pieces, that you can choose
-            for (int x = 0; x < 4; x++)
-            {
-				// if the player clicked on one
-                if (Mouse::getPosition(window).y > boardPosition.y + 3 * pixelScale && Mouse::getPosition(window).y < boardPosition.y + 3 * pixelScale + 16 * pixelScale && 
-                Mouse::getPosition(window).x > boardPosition.x + 3 * pixelScale + (mousePosition.x - 1.5 + x) * 16 * pixelScale &&
-                Mouse::getPosition(window).x < boardPosition.x + 3 * pixelScale + (mousePosition.x - 0.5 + x) * 16 * pixelScale)
-                {
-					// add the piece to the field
-                    pieces[mousePosition.y][mousePosition.x] = x + 2;
-
-                    whitePawnPromoted = false;
-                }
-            }
-        }
-		// if a black pawn promoted, the player first has to select the piece he want's, before anyone can move
-        else if (blackPawnPromoted)
-        {
-			// go trough the positions of the four pieces, that you can choose
-            for (int x = 0; x < 4; x++)
-            {
-				// if the player clicked on one
-                if (Mouse::getPosition(window).y > boardPosition.y + 3 * pixelScale + 7 * 16 * pixelScale && Mouse::getPosition(window).y < boardPosition.y + 3 * pixelScale + 16 * pixelScale + 8 * 16 * pixelScale && 
-                Mouse::getPosition(window).x > boardPosition.x + 3 * pixelScale + (mousePosition.x - 1.5 + x) * 16 * pixelScale &&
-                Mouse::getPosition(window).x < boardPosition.x + 3 * pixelScale + (mousePosition.x - 0.5 + x) * 16 * pixelScale)
-                {
-					// add the piece to the field
-                    pieces[mousePosition.y][mousePosition.x] = x + 8;
-                    pieces[pickedUpPiece.y][pickedUpPiece.x] = 0;
-
-                    blackPawnPromoted = false;
-                }
-            }
-        }
-        // if the mouse isn't on the board
-        else if (Mouse::getPosition(window).x - boardPosition.x - 3 * pixelScale < 0 || Mouse::getPosition(window).y - boardPosition.y - 3 * 
-        pixelScale < 0 || Mouse::getPosition(window).x - boardPosition.x - 3 * pixelScale > 16 * 8 * pixelScale || 
-        Mouse::getPosition(window).y - boardPosition.y - 3 * pixelScale > 16 * 8 * pixelScale)
-        {
-            mousePosition = {-1, -1};
-
-            // put piece back, when one is picked up
-            if (piecePickedUp)
-            {
-                pickedUpPiece = {-1, -1};
-                piecePickedUp =  false;
-            }
-        }
-        // if the mouse is on the board
-        else
-        {						
-            // calculate mouse position on the board
-            mousePosition = {(Mouse::getPosition(window).x - boardPosition.x - 3 * pixelScale) / (16 * pixelScale), 
-            (Mouse::getPosition(window).y - boardPosition.y - 3 * pixelScale) / (16 * pixelScale)};
-
-            // if no piece is picked up and at the mouse position is a piece
-            if (!piecePickedUp && pieces[mousePosition.y][mousePosition.x] != 0)
-            {
-				// make sure the player can only pick up his pieces
-                // if white is to move and the piece is white or black is to move and the piece is black, pick the piece up
-                if ((whiteToMove && pieces[mousePosition.y][mousePosition.x] - 1 >= 0 && pieces[mousePosition.y][mousePosition.x] - 1 <= 5) ||
-                (!whiteToMove && pieces[mousePosition.y][mousePosition.x] - 1 >= 6 && pieces[mousePosition.y][mousePosition.x] - 1 <= 11))
-                {
-                    pickedUpPiece = mousePosition;
-                    piecePickedUp = true;
-                    // update the positions, the current picked up piece can be put
-                    updateValidPiecePositions(pickedUpPiece);
-                }
-            }
-            // if you place the picked up piece on a valid field
-            else if (piecePickedUp && validPiecePositions[mousePosition.y][mousePosition.x])
-            {
-                // if you put the piece not back at the same spot
-                if (pickedUpPiece != mousePosition)
-                {
-                    // if a white pawn is moved two fields forward, enable en passant for it
-                    if (pieces[pickedUpPiece.y][pickedUpPiece.x] - 1 == 0 && pickedUpPiece.y - 2 == mousePosition.y)
-                    {
-                        whiteEnPassant = pickedUpPiece.x;
-                    }
-                    // if a black pawn is moved two fields forward (globally backwards), enable en passant for it
-                    else if (pieces[pickedUpPiece.y][pickedUpPiece.x] - 1 == 6 && pickedUpPiece.y + 2 == mousePosition.y)
-                    {
-                        blackEnPassant = pickedUpPiece.x;
-                    }
-                    // if something else is moved, remove the en passant option
-                    else if (whiteToMove)
-                    {
-                        whiteEnPassant = -1;
-                    }
-                    else if (!whiteToMove)
-                    {
-                        blackEnPassant = -1;
-                    }
-
-                    // if a piece, that was created using pawn promotion, is moved, the position in the variable "piecesByPawnPromotion" needs to be updated
-                    if (piecesByPawnPromotion[pickedUpPiece.y][pickedUpPiece.x])
-                    {
-                        piecesByPawnPromotion[pickedUpPiece.y][pickedUpPiece.x] = false;
-                        piecesByPawnPromotion[mousePosition.y][mousePosition.x] = true;
-                    }
-
-                    // if en passant is used from white pawn
-                    if (pieces[pickedUpPiece.y][pickedUpPiece.x] - 1 == 0 && pickedUpPiece.y == 3 && mousePosition.x == blackEnPassant)
-                    {
-						// move the pawn
-                        pieces[mousePosition.y][mousePosition.x] = pieces[pickedUpPiece.y][pickedUpPiece.x];
-                        pieces[pickedUpPiece.y][pickedUpPiece.x] = 0;
-						// remove the pawn beaten by en passant
-                        pieces[mousePosition.y + 1][mousePosition.x] = 0;
-                    }
-                    // if en passant is used from black pawn
-                    else if (pieces[pickedUpPiece.y][pickedUpPiece.x] - 1 == 6 && pickedUpPiece.y == 4 && mousePosition.x == whiteEnPassant)
-                    {
-						// move the pawn
-                        pieces[mousePosition.y][mousePosition.x] = pieces[pickedUpPiece.y][pickedUpPiece.x];
-                        pieces[pickedUpPiece.y][pickedUpPiece.x] = 0;
-						// remove the pawn beaten by en passant
-                        pieces[mousePosition.y - 1][mousePosition.x] = 0;
-                    }
-                    // if white king castles to the left, we need to move the rook too
-                    else if (pieces[pickedUpPiece.y][pickedUpPiece.x] - 1 == 5 && mousePosition == Vector2i{1, 7} && whiteCastlingLeft)
-                    {
-						// move the king
-                        pieces[mousePosition.y][mousePosition.x] = pieces[pickedUpPiece.y][pickedUpPiece.x];
-                        pieces[pickedUpPiece.y][pickedUpPiece.x] = 0;
-						// move the rook
-                        pieces[7][2] = pieces[7][0];
-                        pieces[7][0] = 0;
-                    }
-                    // if white king castles to the right, we need to move the rook too
-                    else if (pieces[pickedUpPiece.y][pickedUpPiece.x] - 1 == 5 && mousePosition == Vector2i{6, 7} && whiteCastlingRight)
-                    {
-						// move the king
-                        pieces[mousePosition.y][mousePosition.x] = pieces[pickedUpPiece.y][pickedUpPiece.x];
-                        pieces[pickedUpPiece.y][pickedUpPiece.x] = 0;
-						// move the rook
-                        pieces[7][5] = pieces[7][7];
-                        pieces[7][7] = 0;
-                    }
-                    // if black king castles to the left, we need to move the rook too
-                    else if (pieces[pickedUpPiece.y][pickedUpPiece.x] - 1 == 11 && mousePosition == Vector2i{1, 0} && blackCastlingLeft)
-                    {
-						// move the king
-                        pieces[mousePosition.y][mousePosition.x] = pieces[pickedUpPiece.y][pickedUpPiece.x];
-                        pieces[pickedUpPiece.y][pickedUpPiece.x] = 0;
-						// move the rook
-                        pieces[0][2] = pieces[0][0];
-                        pieces[0][0] = 0;
-                    }
-                    // if black king castles to the right, we need to move the rook too
-                    else if (pieces[pickedUpPiece.y][pickedUpPiece.x] - 1 == 11 && mousePosition == Vector2i{6, 0} && blackCastlingRight)
-                    {
-						// move the king
-                        pieces[mousePosition.y][mousePosition.x] = pieces[pickedUpPiece.y][pickedUpPiece.x];
-                        pieces[pickedUpPiece.y][pickedUpPiece.x] = 0;
-						// move the rook
-                        pieces[0][5] = pieces[0][7];
-                        pieces[0][7] = 0;
-                    }
-                    // if a white pawn is promoted
-                    else if (pieces[pickedUpPiece.y][pickedUpPiece.x] - 1 == 0 && mousePosition.y == 0)
-                    {
-						// move the pawn
-                        pieces[mousePosition.y][mousePosition.x] = 1;
-                        pieces[pickedUpPiece.y][pickedUpPiece.x] = 0;
-
-						// enable the option to select a piece
-                        piecesByPawnPromotion[mousePosition.y][mousePosition.x] = true;
-                        whitePawnPromoted = true;
-                    }
-                    // if a black pawn is promoted
-                    else if (pieces[pickedUpPiece.y][pickedUpPiece.x] - 1 == 6 && mousePosition.y == 7)
-                    {
-						// move the pawn
-                        pieces[mousePosition.y][mousePosition.x] = 7;
-                        pieces[pickedUpPiece.y][pickedUpPiece.x] = 0;
-
-						// enable the option to select a piece
-                        piecesByPawnPromotion[mousePosition.y][mousePosition.x] = true;
-                        blackPawnPromoted = true;
-                    }
-                    // else if a piece is moved normally
-                    else
-                    {
-                        // switch the pieces (empty <-> pickedUpPiece)
-                        pieces[mousePosition.y][mousePosition.x] = pieces[pickedUpPiece.y][pickedUpPiece.x];
-                        pieces[pickedUpPiece.y][pickedUpPiece.x] = 0;
-                    }
-
-                    // check if a rook or the king is moved to determine if the king can still castle
-                    // if one of the white rooks moves, only disable castling with this rook
-                    if (pieces[0][0] - 1 != 7 && blackCastlingLeft)
-                    {
-                        blackCastlingLeft = false;
-                    }
-                    if (pieces[0][7] - 1 != 7 && blackCastlingRight)
-                    {
-                        blackCastlingRight = false;
-                    }
-                    if (pieces[7][0] - 1 != 1 && whiteCastlingLeft)
-                    {
-                        whiteCastlingLeft = false;
-                    }
-                    if (pieces[7][7] - 1 != 1 && whiteCastlingRight)
-                    {
-                        whiteCastlingRight = false;
-                    }
-
-                    // if white king moves, disable castling for white completly
-                    if (pieces[0][4] - 1 != 11 && (blackCastlingLeft || blackCastlingRight))
-                    {
-                        blackCastlingLeft = false;
-                        blackCastlingRight = false;
-                    }
-                    // if black king moves, disable castling for white completly
-                    if (pieces[7][4] - 1 != 5 && (whiteCastlingLeft || whiteCastlingRight))
-                    {
-                        whiteCastlingLeft = false;
-                        whiteCastlingRight = false;
-                    }
-
-                    // change player turn
-                    whiteToMove = !whiteToMove;
-                    
-                    // update the list of beaten pieces
-                    updateBeatenPieces();
-
-					// check for checkmate and stalemate, to end the game
-                    if (isCheckmate())
-                    {
-                        gameState = whiteToMove ? 2 : 1;
-                    }
-                    else if (isStalemate())
-                    {
-                        gameState = 3;
-                    }
-                }
-
-                // put the piece down
-                pickedUpPiece = {-1, -1};
-                piecePickedUp = false;
-            }
-        }
-    }
-    // if right clicked, put the piece back
-    else if (event.mouseButton.button == Mouse::Right) // when right mouse button is pressed, put piece back
-    {
-        if (piecePickedUp)
-        {
-            pickedUpPiece = {-1, -1};
-            piecePickedUp =  false;
-        }
-    }
 }
 
 // function to reset the game, so you can start over
