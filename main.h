@@ -35,18 +35,21 @@ bool clientReady = false;
 
 TcpSocket socket; // the socket, for the communication between the computers
 
+// to listen for an incomming connection
 TcpListener listener;
 bool creatingGame = false;
 
+// the main text font
 Font textFont;
 
+// the texture of the back button
 Texture backTexture;
-
 Sprite backSprite;
 
 
 // main functions
 
+// function to load the fonts
 void loadFonts()
 {
     if (!textFont.loadFromFile("fonts\\font.ttf"))
@@ -56,6 +59,7 @@ void loadFonts()
 	}
 }
 
+// function to load the main textures
 void loadMainTextures()
 {
 	if (!backTexture.loadFromFile("textures\\back.png"))

@@ -12,12 +12,14 @@ using namespace std;
 
 // choose online mode variables
 
+// button textures and sprites
 Texture createGameTexture;
 Sprite createGameSprite;
 
 Texture joinGameTexture;
 Sprite joinGameSprite;
 
+// texts for the IP addresses
 string ipAdressString;
 Text ipAdressText;
 
@@ -29,27 +31,35 @@ Text creatingGameText;
 // choose online mode functions
 
 // logic functions
+
+// function to update the own IP address, since it takes pretty long and is unecessary to do it over and over again
 void updateChooseOnlineMode()
 {
     ipAdressString = IpAddress::getLocalAddress().toString();
     ipAdressText.setString("Your IP address [click to copy]: " + ipAdressString);
 }
 
+// funcntion to check if the entered IP address is valid
 bool isIpAddressValid()
 {
-    int tempIpAddress = 0;
-    int numberCount = 0;
+    int tempIpAddress = 0; // saves the current number of the IP address to check if the number is lower than 256
+    int numberCount = 0; // saves how many numbers of the IP address the loop went through
 
+    // go through every character of the IP address
     for (int i = 0; i < ipAdressInputString.size(); i++)
     {
+        // if the character is a digit
         if (isdigit(ipAdressInputString[i]))
         {
+            // increase the temporary number
             tempIpAddress = tempIpAddress * 10;
 
             tempIpAddress += ipAdressInputString[i] - '0';
         }
+        // if the character is a dot
         else if (ipAdressInputString[i] == '.')
         {
+            // check if the temporary number is lower than 256, since it is not allowed
             if (tempIpAddress < 0 || tempIpAddress > 255)
             {
                 return false;
@@ -57,17 +67,20 @@ bool isIpAddressValid()
             tempIpAddress = 0;
             numberCount += 1;
         }
+        // if any other character is entered
         else
         {
             return false;
         }
 
+        // if the IP address is to long
         if (numberCount > 3)
         {
             return false;
         }
     }
 
+    // do the last to steps again, since the IP address doesn't end with a dot
     if (tempIpAddress <= 0 || tempIpAddress >= 255)
     {
         return false;
@@ -78,6 +91,7 @@ bool isIpAddressValid()
         return false;
     }
 
+    // if everything was correct, return true
     return true;
 }
 
@@ -115,7 +129,7 @@ void drawChooseOnlineMode(RenderWindow &window)
 
     window.draw(backSprite);
 
-    // draw the text
+    // draw the text with the own IP address
     ipAdressText.setPosition(Vector2f(windowSizeX * 0.5 - 320, windowSizeY * 0.1));
     ipAdressText.setFillColor(Color(140, 140, 140));
     ipAdressText.setFont(textFont);
@@ -123,11 +137,13 @@ void drawChooseOnlineMode(RenderWindow &window)
     window.draw(ipAdressText);
 
 
+    // draw the text with the other persons IP address
     if (!ipAdressInputString.empty())
     {
         ipAdressInputText.setString(ipAdressInputString);
         ipAdressInputText.setPosition(Vector2f(windowSizeX * 0.5 - 80, windowSizeY * 0.4));
     }
+    // if nothing was entered, set a standard text
     else
     {
         ipAdressInputText.setString("Enter IP address to connect to [click to paste].");
@@ -139,7 +155,7 @@ void drawChooseOnlineMode(RenderWindow &window)
 
     window.draw(ipAdressInputText);
 
-    // draw the text
+    // draw the text to indicate, that you are creating a game, if this is the case
     if (creatingGame)
     {
         creatingGameText.setFont(textFont);

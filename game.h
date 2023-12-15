@@ -716,12 +716,12 @@ void updateGame(Event event, RenderWindow &window)
 
 						whitePawnPromoted = false;
 
-						// send over the pieces, to update the board for the other person
+						// send over the pieces and other informations, to update the board for the other person
 						if (playOnline)
 						{
 							Packet packet;
 							
-							Uint8 status = 1;
+							Uint8 status = 1; // status 1 = game information send
 
 							packet << status;
 
@@ -767,12 +767,12 @@ void updateGame(Event event, RenderWindow &window)
 
 						blackPawnPromoted = false;
 
-						// send over the pieces, to update the board for the other person
+						// send over the pieces and other informations, to update the board for the other person
 						if (playOnline)
 						{
 							Packet packet;
 
-							Uint8 status = 1;
+							Uint8 status = 1; // status 1 = game information send
 							
 							packet << status;
 
@@ -989,12 +989,12 @@ void updateGame(Event event, RenderWindow &window)
 							whiteCastlingRight = false;
 						}
 
-						// send over the pieces, to update the board for the other person
+						// send over the pieces and other informations, to update the board for the other person
 						if (playOnline && ((youAreHost && !whitePawnPromoted) || (!youAreHost && !blackPawnPromoted)))
 						{
 							Packet packet;
 
-							Uint8 status = 1;
+							Uint8 status = 1; // status 1 = game information send
 							
 							packet << status;
 

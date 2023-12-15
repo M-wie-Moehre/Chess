@@ -12,6 +12,7 @@ using namespace std;
 
 // game over variables
 
+// textures for all the different win possibilities
 Texture whiteWinsTextTexture;
 Sprite whiteWinsTextSprite;
 
@@ -21,6 +22,7 @@ Sprite blackWinsTextSprite;
 Texture drawTextTexture;
 Sprite drawTextSprite;
 
+// textures for the different buttons
 Texture playAgainTexture;
 Sprite playAgainSprite;
 
@@ -62,6 +64,7 @@ void loadGameOverTextures()
     drawTextSprite.setScale(pixelScale, pixelScale); // one pixel on the images is equal to five pixel on the window
     drawTextSprite.setPosition(windowSizeX / 2 - (131 * pixelScale) / 2, windowSizeY / 2 - 36 * pixelScale);
 
+    // load the button textures
     if (!playAgainTexture.loadFromFile("textures\\play_again.png"))
     {
         cout << "Couldn't load texture \"textures\\play_again.png\". Exiting.." << endl;
@@ -95,7 +98,7 @@ void drawGameOver(RenderWindow &window)
     window.draw(playAgainSprite);
     window.draw(backSprite);
 
-    // draw the text
+    // draw the text to indicate how many players are ready when playing online
     if (playOnline)
     {
         pressToContinueText.setFont(textFont);
